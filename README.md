@@ -2,63 +2,48 @@
 
 Companion website for the SURE 2026 poster **Safe Drone Racing With an Unknown
 Payload** (Brandon McDonald, Kaleb Ben Naveed, Dimitra Panagou). Attendees scan
-the QR on the poster and open real, interactive runs from the gatekeeper
-simulator: the quad's true attitude, the per-tick commit/reject timeline, and
-charts of how far off the line an unknown payload pushes it.
+the QR on the poster and get a simple, playful simulator built for a general
+audience: a delivery drone banks through gates and stays inside a safe zone,
+then a mystery load on a string swings it out of the zone, then it learns to
+correct.
 
 **Live URL:** https://brandmcd.github.io/sure-2026/
 
 ## What is here
 
-- `index.html` is the landing page: a live embedded run plus a gallery of eight
-  scenes grouped as a story (clean flight, hang a load, learn the residual, the
-  frontier). Styled to match the research viewer.
-- `sim/*.html` are the interactive scenes. Each is a real run rendered by the
-  three.js viewer. They share one copy of the viewer under `viewer/` instead of
-  embedding it, so the payload per scene is just the trajectory.
-- `viewer/` holds the shared viewer: `three.module.min.js`, `viewer.js`,
-  `viewer.css` (a copy of the research repo's `viz/web`, with the charts kept
-  visible on phones).
-- `assets/qr.png` and `assets/qr.svg` are the QR to the live URL. Use the SVG on
-  the printed poster.
-- `make_qr.py` regenerates the QR. `build_scenes.py` regenerates the scenes.
+- `index.html` is the whole main site: a self-contained, hand-drawn canvas
+  simulator with three plain-language scenes (empty drone, mystery load, after
+  it learns), a "how far off the path" chart, and a short explanation. No build
+  step, no dependencies, no jargon. The drone shows its real banking attitude.
+- `sim/grandprix-slung-learned.html` is one full run from the research viewer,
+  linked discreetly from the footer for anyone who wants the technical version.
+  It shares the viewer under `viewer/`.
+- `viewer/` is that research viewer (three.js) vendored once.
+- `assets/qr.*` is the QR to the live URL (SVG for print). `make_qr.py`
+  regenerates it. `build_scenes.py` regenerates viewer runs from the research
+  repo's `.npz` files.
 
-Each scene: drag to orbit, right-drag to pan, scroll to zoom, press play. The
-bottom strip is the safety check over time (green commit, red backup). The
-charts show the disturbance the model must learn and the off-path distance
-against the corridor wall.
+## Design
 
-## Regenerate the scenes
-
-The scenes are built from run `.npz` files in the research repo, so run this
-from there with its virtual environment:
-
-```bash
-cd ~/DASC/neural-dual-gtk
-.venv/bin/python ~/DASC/sure-2026/build_scenes.py
-```
-
-Edit `SCENES` in `build_scenes.py` to change which runs ship, or `MAX_SECONDS`
-to trim the tail. The viewer code lives in `~/DASC/neural-dual-gtk/viz/web`; if
-it changes, recopy `viewer.js` / `viewer.css` / `vendor/three.module.min.js`
-into `viewer/`.
+Warm light theme, `system-ui`, one blue accent plus reserved green/red status,
+colors from a validated data-viz palette. Inside vs outside the safe zone never
+relies on color alone: it also differs by line weight, an icon-and-label status
+pill, and the chart threshold.
 
 ## Deploy
 
-Already live on GitHub Pages from `main` at the root. To update:
+Live on GitHub Pages from `main` at the root. To update:
 
 ```bash
 cd ~/DASC/sure-2026
 git add -A && git commit -m "..." && git push
 ```
 
-Pages rebuilds in a minute or so. If the scan URL ever changes, edit `URL` in
-`make_qr.py`, rerun `uv run --with segno python make_qr.py`, and drop the new
-SVG onto the poster.
+If the scan URL ever changes, edit `URL` in `make_qr.py`, rerun
+`uv run --with segno python make_qr.py`, and drop the new SVG onto the poster.
 
 ## Notes
 
-All results are in simulation on the full nonlinear drone; the guarantee is
-conditional on the sets checked. The learned residual clearly helps where the
-load is well excited (Grand Prix: swinging 0 to 77 percent commit, bolted-on 37
-to 85), and the swinging load on the tightest tracks stays the open frontier.
+Everything is in simulation. The safe zone is the region the drone's safety
+check keeps it inside; the guarantee holds for the checks it runs, and the loads
+shown are deliberately heavy.
