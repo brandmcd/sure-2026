@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light">
 <meta name="theme-color" content="#f5f6f8">
-<meta name="description" content="Companion site for the SURE 2026 poster. A simple, playful simulator: watch a delivery drone bank through gates, then see a mystery load on a string swing it out of its safe zone, and how it learns to correct.">
+<meta name="description" content="Companion site for the SURE 2026 poster. A simple, playful simulator: watch a delivery drone bank through gates, then see a mystery load on a string swing it out of its safe zone, and how it learns to correct. Try it on a circle or a chicane course.">
 <meta property="og:title" content="Safe Drone Racing With an Unknown Payload">
 <meta property="og:description" content="A simple simulator: watch an unknown load swing a delivery drone out of its safe zone, then watch it learn.">
 <title>Safe Drone Racing With an Unknown Payload · SURE 2026</title>
@@ -41,8 +41,16 @@ h1{color:var(--ink);font-size:clamp(1.7rem,6vw,2.35rem);line-height:1.1;font-wei
 .lede{margin:15px 0 0;font-size:1.06rem;line-height:1.55;color:var(--ink-2);max-width:56ch}
 .lede b{color:var(--ink);font-weight:600}
 
+/* course selector */
+.courses{display:flex;align-items:center;gap:8px;margin-top:22px}
+.courses .lab{font-size:12px;font-weight:650;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);margin-right:2px}
+.crs{border:1px solid var(--border);background:var(--card);color:var(--ink-2);cursor:pointer;
+  font:600 .86rem var(--sans);padding:7px 15px;border-radius:999px;transition:all .15s}
+.crs[aria-pressed="true"]{background:var(--blue);color:#fff;border-color:var(--blue);
+  box-shadow:0 3px 9px -3px rgba(42,120,214,.6)}
+
 /* tabs */
-.tabs{display:flex;gap:5px;background:#eceef2;border-radius:var(--r-2);padding:5px;margin:22px 0 0}
+.tabs{display:flex;gap:5px;background:#eceef2;border-radius:var(--r-2);padding:5px;margin:10px 0 0}
 .tab{flex:1;border:0;background:transparent;color:var(--ink-2);cursor:pointer;
   font:600 .92rem var(--sans);padding:10px 8px;border-radius:var(--r-3);white-space:nowrap;
   transition:background .16s,color .16s,box-shadow .16s}
@@ -57,7 +65,7 @@ canvas.view{display:block;width:100%;height:min(58vh,460px);touch-action:none;cu
 canvas.view:active{cursor:grabbing}
 .tag{position:absolute;top:12px;left:12px;background:rgba(255,255,255,.82);
   border:1px solid var(--border);border-radius:10px;padding:7px 11px;backdrop-filter:blur(8px);
-  font-size:12.5px;color:var(--ink-2);line-height:1.35;max-width:60%}
+  font-size:12.5px;color:var(--ink-2);line-height:1.35;max-width:56%}
 .tag b{color:var(--ink);font-weight:650;display:block;font-size:13px}
 .pill{position:absolute;top:12px;right:12px;display:inline-flex;align-items:center;gap:7px;
   font-size:12.5px;font-weight:650;padding:7px 11px;border-radius:999px;background:rgba(255,255,255,.82);
@@ -129,6 +137,12 @@ footer{margin-top:34px;border-top:1px solid var(--line);padding-top:22px;
     <p class="lede">A delivery drone has to fly fast and stay inside a <b>safe zone</b> it can prove it will not leave, even when it is carrying something it has never felt before. Press play and watch what a mystery load does.</p>
   </header>
 
+  <div class="courses" role="group" aria-label="Course">
+    <span class="lab">Course</span>
+    <button class="crs" data-track="circle" aria-pressed="true">Circle</button>
+    <button class="crs" data-track="chicane" aria-pressed="false">Chicane</button>
+  </div>
+
   <div class="tabs" role="tablist" aria-label="Examples" id="tabs">
     <button class="tab" role="tab" aria-selected="true"  data-i="0">Empty drone</button>
     <button class="tab" role="tab" aria-selected="false" data-i="1">Mystery load</button>
@@ -190,14 +204,48 @@ footer{margin-top:34px;border-top:1px solid var(--line);padding-top:22px;
   var W=0,H=0,DPR=1, TWO=Math.PI*2;
 
   function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
-  var C={blue:css('--blue'),good:css('--good'),bad:css('--bad'),load:css('--load'),
-         zoneLine:css('--zone-line'),ink3:css('--ink-3')};
+  var C={blue:css('--blue'),good:css('--good'),bad:css('--bad'),load:css('--load')};
 
-  // world
-  var R0=5.0, RHO=0.9, FLY=2.3, GROUND=0, NG=5, GHW=0.95, GHH=1.25;
-  var GATES=[]; for(var g=0;g<NG;g++) GATES.push(g/NG*TWO+0.45);
+  var RHO=0.9, FLY=2.3, GROUND=0, GHW=0.9, GHH=1.1;
 
-  // scenes (plain-language)
+  // ---------- tracks: a centerline C(a) for a in [0,2pi), height FLY ----------
+  var R0=5.0;
+  function circleC(a){return [R0*Math.cos(a),R0*Math.sin(a),FLY];}
+  function chicaneC(a){
+    var u=(a/TWO)%1; if(u<0)u+=1;
+    var Lx=4.6, Re=2.7, wA=1.35, x, y, lt, th, off;
+    if(u<0.30){                       // bottom straight, weaving
+      lt=u/0.30; x=-Lx+2*Lx*lt;
+      off=wA*Math.pow(Math.sin(Math.PI*lt),2)*Math.sin(3*Math.PI*lt); y=-Re+off;
+    }else if(u<0.50){                 // right U-turn
+      th=-Math.PI/2+(u-0.30)/0.20*Math.PI; x=Lx+Re*Math.cos(th); y=Re*Math.sin(th);
+    }else if(u<0.80){                 // top straight, weaving
+      lt=(u-0.50)/0.30; x=Lx-2*Lx*lt;
+      off=wA*Math.pow(Math.sin(Math.PI*lt),2)*Math.sin(3*Math.PI*lt); y=Re-off;
+    }else{                            // left U-turn
+      th=Math.PI/2+(u-0.80)/0.20*Math.PI; x=-Lx+Re*Math.cos(th); y=Re*Math.sin(th);
+    }
+    return [x,y,FLY];
+  }
+  var TRACKS={
+    circle:{C:circleC, zoom:1.0, gates:[0,1,2,3,4].map(function(k){return 0.45+k*TWO/5;})},
+    chicane:{C:chicaneC, zoom:0.72, gates:[0.06,0.15,0.24,0.56,0.65,0.74].map(function(u){return u*TWO;})}
+  };
+  var trackName='circle';
+  function TC(a){return TRACKS[trackName].C(a);}
+
+  // vec helpers
+  function sub(a,b){return [a[0]-b[0],a[1]-b[1],a[2]-b[2]];}
+  function add(a,b){return [a[0]+b[0],a[1]+b[1],a[2]+b[2]];}
+  function mul(a,s){return [a[0]*s,a[1]*s,a[2]*s];}
+  function cross(a,b){return [a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];}
+  function norm(a){var m=Math.hypot(a[0],a[1],a[2])||1;return [a[0]/m,a[1]/m,a[2]/m];}
+
+  function tang(a){var h=0.008,p1=TC(a-h),p2=TC(a+h);return norm([p2[0]-p1[0],p2[1]-p1[1],0]);}
+  // horizontal normal: perpendicular to travel, so gate posts straddle the path
+  function nrm(a){return norm(cross(tang(a),[0,0,1]));}
+
+  // scenes (plain-language). drift = how far the drone sits off the path, sideways.
   var EX=[
     {name:'Empty drone', sub:'flying a lap through the gates',
      cap:'The drone knows its own weight, so it holds the line and stays inside the safe zone the whole way around.',
@@ -214,15 +262,15 @@ footer{margin-top:34px;border-top:1px solid var(--line);padding-top:22px;
   ];
   var cur=0;
 
-  // precompute the off-path distance series per scene for the chart
   var SAMP=240;
   var SERIES=EX.map(function(ex){var a=[];for(var i=0;i<=SAMP;i++)a.push(Math.abs(ex.drift(i/SAMP*TWO)));return a;});
 
-  function pos(ex,a){var d=ex.drift(a),c=Math.cos(a),s=Math.sin(a);
-    return [(R0+d)*c,(R0+d)*s, FLY+0.12*Math.sin(3*a+0.2)];}
+  // drone position = centerline + sideways drift along the path normal, plus a gentle bob
+  function pos(ex,a){var c=TC(a),n=nrm(a),d=ex.drift(a);
+    return [c[0]+d*n[0], c[1]+d*n[1], FLY+0.12*Math.sin(3*a+0.2)];}
 
   // camera (z up, perspective, orbit)
-  var az=0.72, el=0.42, D=15.5, FOCAL=700, cx=0, cy=0, autspin=true;
+  var az=0.72, el=0.44, D=15.5, ZOOM=1.0, FOCAL=700, cx=0, cy=0, autspin=true;
   function proj(p){
     var dx=p[0],dy=p[1],dz=p[2]-FLY;
     var ca=Math.cos(az),sa=Math.sin(az),ce=Math.cos(el),se=Math.sin(el);
@@ -236,100 +284,85 @@ footer{margin-top:34px;border-top:1px solid var(--line);padding-top:22px;
     DPR=Math.min(devicePixelRatio||1,2);
     var r=cv.getBoundingClientRect(); W=Math.round(r.width); H=Math.round(r.height);
     cv.width=Math.round(W*DPR); cv.height=Math.round(H*DPR); ctx.setTransform(DPR,0,0,DPR,0,0);
-    FOCAL=Math.min(W,H)*1.15*(D/15.5); cx=W/2; cy=H*0.58;
+    FOCAL=Math.min(W,H)*1.15*ZOOM; cx=W/2; cy=H*0.58;
     sizePlot();
   }
 
-  // vec helpers
-  function sub(a,b){return [a[0]-b[0],a[1]-b[1],a[2]-b[2]];}
-  function add(a,b){return [a[0]+b[0],a[1]+b[1],a[2]+b[2]];}
-  function mul(a,s){return [a[0]*s,a[1]*s,a[2]*s];}
-  function cross(a,b){return [a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];}
-  function norm(a){var m=Math.hypot(a[0],a[1],a[2])||1;return [a[0]/m,a[1]/m,a[2]/m];}
-
-  // attitude from the path: body-up points along (accel - gravity), so the quad banks into turns
+  // attitude from the drone path: body-up along (accel - gravity) so it banks into turns
   function attitude(ex,a){
     var h=0.03;
     var pm=pos(ex,a-h), p0=pos(ex,a), pp=pos(ex,a+h);
     var acc=[(pp[0]-2*p0[0]+pm[0])/(h*h),(pp[1]-2*p0[1]+pm[1])/(h*h),(pp[2]-2*p0[2]+pm[2])/(h*h)];
     var vel=[(pp[0]-pm[0])/(2*h),(pp[1]-pm[1])/(2*h),(pp[2]-pm[2])/(2*h)];
-    var up=norm([ (acc[0])*ex.tilt, (acc[1])*ex.tilt, acc[2]+9.8 ]);
+    var up=norm([acc[0]*ex.tilt, acc[1]*ex.tilt, acc[2]+9.8]);
     var fwd=norm(sub(vel, mul(up, vel[0]*up[0]+vel[1]*up[1]+vel[2]*up[2])));
     var right=norm(cross(fwd,up));
     return {p:p0, up:up, fwd:fwd, right:right};
   }
 
-  function ring(rad){var a=[];for(var i=0;i<=100;i++){var t=i/100*TWO;a.push([rad*Math.cos(t),rad*Math.sin(t),FLY]);}return a;}
-  function drawPolyFlat(pts,close){ctx.beginPath();for(var i=0;i<pts.length;i++){var q=proj(pts[i]);i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y);}if(close)ctx.closePath();}
+  function edge(sign){var a=[];for(var i=0;i<=140;i++){var u=i/140*TWO,c=TC(u),n=nrm(u);
+    a.push([c[0]+sign*RHO*n[0],c[1]+sign*RHO*n[1],FLY]);}return a;}
+  function centerCurve(){var a=[];for(var i=0;i<=140;i++)a.push(TC(i/140*TWO));return a;}
+  function polyF(pts,close){ctx.beginPath();for(var i=0;i<pts.length;i++){var q=proj(pts[i]);i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y);}if(close)ctx.closePath();}
 
   function drawGround(){
-    // soft floor with a faint grid, well below the flying height
-    var ext=8.5,n=9;
-    ctx.lineWidth=1; ctx.strokeStyle='rgba(120,135,165,0.12)';
+    var ext=9,n=9; ctx.lineWidth=1; ctx.strokeStyle='rgba(120,135,165,0.11)';
     for(var i=-n;i<=n;i++){var f=i/n*ext;
       ctx.beginPath();var a=proj([f,-ext,GROUND]),b=proj([f,ext,GROUND]);ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
-      ctx.beginPath();var c=proj([-ext,f,GROUND]),d=proj([ext,f,GROUND]);ctx.moveTo(c.x,c.y);ctx.lineTo(d.x,d.y);ctx.stroke();
-    }
+      ctx.beginPath();var c=proj([-ext,f,GROUND]),d=proj([ext,f,GROUND]);ctx.moveTo(c.x,c.y);ctx.lineTo(d.x,d.y);ctx.stroke();}
   }
   function drawZone(){
-    var outer=ring(R0+RHO), inner=ring(R0-RHO), i,q;
+    var outer=edge(1), inner=edge(-1), i,q;
     ctx.beginPath();
     for(i=0;i<outer.length;i++){q=proj(outer[i]);i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y);}
     for(i=inner.length-1;i>=0;i--){q=proj(inner[i]);ctx.lineTo(q.x,q.y);} ctx.closePath();
     ctx.fillStyle='rgba(42,120,214,0.12)'; ctx.fill();
     ctx.strokeStyle='rgba(143,180,230,0.9)'; ctx.lineWidth=1.2;
-    drawPolyFlat(outer,true); ctx.stroke(); drawPolyFlat(inner,true); ctx.stroke();
+    polyF(outer,true); ctx.stroke(); polyF(inner,true); ctx.stroke();
     ctx.setLineDash([6,7]); ctx.strokeStyle='rgba(120,150,200,0.7)'; ctx.lineWidth=1.4;
-    drawPolyFlat(ring(R0),true); ctx.stroke(); ctx.setLineDash([]);
+    polyF(centerCurve(),true); ctx.stroke(); ctx.setLineDash([]);
   }
   function drawTrail(ex,aNow){
-    var span=TWO*0.72, step=span/70;
+    var span=TWO*0.66, step=span/80;
     for(var a=aNow-span;a<aNow-1e-6;a+=step){
-      var p1=pos(ex,a), p2=pos(ex,a+step);
-      var out=Math.abs(ex.drift(a))>RHO || Math.abs(ex.drift(a+step))>RHO;
-      var q1=proj(p1),q2=proj(p2);
+      var out=Math.abs(ex.drift(a))>RHO||Math.abs(ex.drift(a+step))>RHO;
+      var q1=proj(pos(ex,a)),q2=proj(pos(ex,a+step));
       var fade=Math.max(0,(a-(aNow-span))/span);
-      ctx.globalAlpha=0.25+0.75*fade;
+      ctx.globalAlpha=0.22+0.78*fade;
       ctx.beginPath();ctx.moveTo(q1.x,q1.y);ctx.lineTo(q2.x,q2.y);
-      ctx.strokeStyle=out?C.bad:C.good; ctx.lineWidth=(out?5:3.6); ctx.lineCap='round';
+      ctx.strokeStyle=out?C.bad:C.good; ctx.lineWidth=out?5:3.6; ctx.lineCap='round';
       if(out){ctx.shadowColor='rgba(208,59,59,0.5)';ctx.shadowBlur=8;}
       ctx.stroke(); ctx.shadowBlur=0;
     }
     ctx.globalAlpha=1;
   }
   function shadow(p,rad,alpha){
-    var q=proj([p[0],p[1],GROUND]);
-    var rx=rad*q.s*0.5, ry=rx*0.42;
+    var q=proj([p[0],p[1],GROUND]); var rx=rad*q.s*0.5, ry=rx*0.42;
     ctx.beginPath(); ctx.ellipse(q.x,q.y,Math.max(3,rx),Math.max(1.5,ry),0,0,TWO);
     ctx.fillStyle='rgba(30,40,60,'+alpha+')'; ctx.fill();
   }
-  function gateObj(thg){
-    var c=[R0*Math.cos(thg),R0*Math.sin(thg),FLY], t=[-Math.sin(thg),Math.cos(thg),0];
-    function corner(sx,dz){return [c[0]+sx*GHW*t[0],c[1]+sx*GHW*t[1],FLY+dz];}
-    return {c:c, tl:corner(-1,GHH),tr:corner(1,GHH),bl:corner(-1,-GHH),br:corner(1,-GHH),
-      fl:[c[0]-GHW*t[0],c[1]-GHW*t[1],GROUND], fr:[c[0]+GHW*t[0],c[1]+GHW*t[1],GROUND]};
+  // a gate is a frame the drone flies THROUGH: posts straddle the path along its
+  // normal, rails span top and bottom, two short legs to the ground.
+  function gateObj(a){
+    var c=TC(a), n=nrm(a);
+    function cn(sx,dz){return [c[0]+sx*GHW*n[0], c[1]+sx*GHW*n[1], FLY+dz];}
+    return {c:c, tl:cn(-1,GHH),tr:cn(1,GHH),bl:cn(-1,-GHH),br:cn(1,-GHH),
+      fl:[c[0]-GHW*n[0],c[1]-GHW*n[1],GROUND], fr:[c[0]+GHW*n[0],c[1]+GHW*n[1],GROUND]};
   }
   function drawGate(o){
     ctx.strokeStyle='#aeb5c2'; ctx.lineWidth=5; ctx.lineJoin='round'; ctx.lineCap='round';
-    drawPolyFlat([o.tl,o.tr],false); ctx.stroke();
-    drawPolyFlat([o.bl,o.br],false); ctx.stroke();
-    drawPolyFlat([o.tl,o.bl],false); ctx.stroke();
-    drawPolyFlat([o.tr,o.br],false); ctx.stroke();
-    ctx.strokeStyle='rgba(174,181,194,0.45)'; ctx.lineWidth=2.5;
-    drawPolyFlat([o.bl,o.fl],false); ctx.stroke();
-    drawPolyFlat([o.br,o.fr],false); ctx.stroke();
+    polyF([o.tl,o.tr,o.br,o.bl],true); ctx.stroke();               // the square opening
+    ctx.strokeStyle='rgba(174,181,194,0.42)'; ctx.lineWidth=2.4;
+    polyF([o.bl,o.fl],false); ctx.stroke();                        // legs
+    polyF([o.br,o.fr],false); ctx.stroke();
   }
   function drawDrone(att){
-    var a=0.42, rr=0.26, p=att.p;
-    // rotor arms in the tilted body plane (X config)
+    var a=0.44, rr=0.27, p=att.p;
     var dirs=[norm(add(att.fwd,att.right)),norm(sub(att.fwd,att.right))];
-    var rotors=[];
-    dirs.forEach(function(d){rotors.push(add(p,mul(d,a)));rotors.push(add(p,mul(d,-a)));});
-    // arms
+    var rotors=[]; dirs.forEach(function(d){rotors.push(add(p,mul(d,a)));rotors.push(add(p,mul(d,-a)));});
     var qc=proj(p);
     ctx.strokeStyle='#2b3040'; ctx.lineWidth=2.4; ctx.lineCap='round';
     rotors.forEach(function(rp){var q=proj(rp);ctx.beginPath();ctx.moveTo(qc.x,qc.y);ctx.lineTo(q.x,q.y);ctx.stroke();});
-    // rotor disks: a small circle in the (fwd,right) plane, projected -> ellipse (sells the tilt)
     rotors.forEach(function(rp){
       ctx.beginPath();
       for(var k=0;k<=16;k++){var t=k/16*TWO;
@@ -338,29 +371,23 @@ footer{margin-top:34px;border-top:1px solid var(--line);padding-top:22px;
       ctx.closePath(); ctx.fillStyle='rgba(42,120,214,0.16)'; ctx.fill();
       ctx.strokeStyle='#2b3040'; ctx.lineWidth=1.8; ctx.stroke();
     });
-    // hub
-    ctx.beginPath(); ctx.arc(qc.x,qc.y,Math.max(3.2,4.6*qc.s/150),0,TWO);
+    ctx.beginPath(); ctx.arc(qc.x,qc.y,Math.max(3.4,4.8*qc.s/150),0,TWO);
     ctx.fillStyle='#1a1e28'; ctx.fill();
   }
 
   function render(tt){
     ctx.clearRect(0,0,W,H);
-    // sky
     var g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,'#eaf1fb'); g.addColorStop(1,'#fdfefe');
     ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
-    var ex=EX[cur];
+    var ex=EX[cur], aNow=tt;
     drawGround(); drawZone();
-    var aNow=tt;
     var att=attitude(ex,aNow), dp=att.p;
-    // load
     var loadPos=null;
-    if(ex.load){var phi=ex.swing*Math.sin(1.65*tt+0.6), t=[-Math.sin(aNow),Math.cos(aNow),0];
-      var L=1.5; loadPos=[dp[0]+L*Math.sin(phi)*t[0],dp[1]+L*Math.sin(phi)*t[1],dp[2]-L*Math.cos(phi)];}
-    // ground shadows first
+    if(ex.load){var phi=ex.swing*Math.sin(1.65*tt+0.6), n=nrm(aNow);
+      var L=1.5; loadPos=[dp[0]+L*Math.sin(phi)*n[0],dp[1]+L*Math.sin(phi)*n[1],dp[2]-L*Math.cos(phi)];}
     shadow(dp,0.9,0.18); if(loadPos) shadow(loadPos,0.5,0.16);
     drawTrail(ex,aNow);
-    // depth-sorted movers: gates + drone + load
-    var objs=GATES.map(function(th){var o=gateObj(th);return {d:proj(o.c).d,kind:'gate',o:o};});
+    var objs=TRACKS[trackName].gates.map(function(ga){var o=gateObj(ga);return {d:proj(o.c).d,kind:'gate',o:o};});
     if(loadPos) objs.push({d:proj(loadPos).d,kind:'load',p:loadPos,from:dp});
     objs.push({d:proj(dp).d,kind:'drone',att:att});
     objs.sort(function(a,b){return b.d-a.d;});
@@ -373,9 +400,7 @@ footer{margin-top:34px;border-top:1px solid var(--line);padding-top:22px;
         ctx.strokeStyle='#b06f00';ctx.lineWidth=1.4;ctx.stroke();
       } else drawDrone(o.att);
     });
-    // status pill reflects the drone's true position right now
-    var out=Math.abs(ex.drift(aNow))>RHO;
-    setPill(out);
+    setPill(Math.abs(ex.drift(aNow))>RHO);
   }
 
   // ---- chart ----
@@ -387,29 +412,19 @@ footer{margin-top:34px;border-top:1px solid var(--line);padding-top:22px;
     var X=function(i){return padL+(i/SAMP)*(w-padL-padR);};
     var Y=function(v){return h-padB-(Math.min(v,ymax)/ymax)*(h-padT-padB);};
     pc.clearRect(0,0,w,h);
-    // baseline
     pc.strokeStyle=css('--line');pc.lineWidth=1;pc.beginPath();pc.moveTo(0,Y(0));pc.lineTo(w,Y(0));pc.stroke();
-    // safe-zone edge threshold + shaded danger band above it
     var yt=Y(RHO);
     pc.fillStyle='rgba(208,59,59,0.07)';pc.fillRect(0,padT-2,w,Math.max(0,yt-(padT-2)));
     pc.strokeStyle=C.bad;pc.setLineDash([5,4]);pc.lineWidth=1.4;pc.beginPath();pc.moveTo(0,yt);pc.lineTo(w,yt);pc.stroke();pc.setLineDash([]);
-    // filled area under the distance curve, blue where inside, red where over the edge
-    function area(colorHi){
-      pc.beginPath();pc.moveTo(X(0),Y(0));
-      for(var i=0;i<=SAMP;i++)pc.lineTo(X(i),Y(ser[i]));
-      pc.lineTo(X(SAMP),Y(0));pc.closePath();
-    }
-    // clip to below-threshold (blue) then above (red)
+    function area(){pc.beginPath();pc.moveTo(X(0),Y(0));
+      for(var i=0;i<=SAMP;i++)pc.lineTo(X(i),Y(ser[i]));pc.lineTo(X(SAMP),Y(0));pc.closePath();}
     pc.save();pc.beginPath();pc.rect(0,yt,w,h-yt);pc.clip();area();pc.fillStyle='rgba(42,120,214,0.14)';pc.fill();pc.restore();
     pc.save();pc.beginPath();pc.rect(0,0,w,yt);pc.clip();area();pc.fillStyle='rgba(208,59,59,0.16)';pc.fill();pc.restore();
-    // the curve, colored per segment
     for(var i=0;i<SAMP;i++){var over=ser[i]>RHO||ser[i+1]>RHO;
       pc.beginPath();pc.moveTo(X(i),Y(ser[i]));pc.lineTo(X(i+1),Y(ser[i+1]));
       pc.strokeStyle=over?C.bad:C.blue;pc.lineWidth=over?2.4:2;pc.stroke();}
-    // edge label
     pc.font='600 10px '+css('--sans').replace(/"/g,'');pc.fillStyle=C.bad;pc.textBaseline='bottom';
     pc.fillText('edge of safe zone',padL,yt-3);
-    // playhead + dot
     var frac=(tt%TWO)/TWO, idx=Math.round(frac*SAMP), hx=X(idx);
     pc.strokeStyle='rgba(20,22,26,0.55)';pc.lineWidth=1.2;pc.beginPath();pc.moveTo(hx,padT-4);pc.lineTo(hx,h-padB);pc.stroke();
     var over=ser[idx]>RHO;
@@ -435,6 +450,9 @@ footer{margin-top:34px;border-top:1px solid var(--line);padding-top:22px;
     lastOut=null;
     Array.prototype.forEach.call(document.querySelectorAll('.tab'),function(b){b.setAttribute('aria-selected',(+b.dataset.i===i)?'true':'false');});
   }
+  function setTrack(name){ if(!TRACKS[name])return; trackName=name; ZOOM=TRACKS[name].zoom; resize();
+    Array.prototype.forEach.call(document.querySelectorAll('.crs'),function(b){b.setAttribute('aria-pressed',(b.dataset.track===name)?'true':'false');});
+  }
 
   // ---- playback ----
   var playing=true, tt=0, W_ANG=0.84, last=0;
@@ -442,6 +460,7 @@ footer{margin-top:34px;border-top:1px solid var(--line);padding-top:22px;
   function setPlay(p){playing=p;playIco.innerHTML=p?'<path d="M6 5h4v14H6zM14 5h4v14h-4z"/>':'<path d="M8 5v14l11-7z"/>';}
   playBtn.addEventListener('click',function(){setPlay(!playing);});
   document.getElementById('tabs').addEventListener('click',function(e){var b=e.target.closest('.tab');if(b)setScene(+b.dataset.i);});
+  document.querySelector('.courses').addEventListener('click',function(e){var b=e.target.closest('.crs');if(b)setTrack(b.dataset.track);});
 
   var trackEl=document.getElementById('track'),fillEl=document.getElementById('trackFill'),knobEl=document.getElementById('trackKnob');
   function seek(e){var r=trackEl.getBoundingClientRect();var f=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));tt=f*TWO;}
@@ -450,13 +469,11 @@ footer{margin-top:34px;border-top:1px solid var(--line);padding-top:22px;
   trackEl.addEventListener('pointermove',function(e){if(scrub)seek(e);});
   trackEl.addEventListener('pointerup',function(){scrub=false;});
 
-  // orbit drag
   var drag=false,px=0;
   cv.addEventListener('pointerdown',function(e){drag=true;autspin=false;px=e.clientX;try{cv.setPointerCapture(e.pointerId);}catch(_){}document.getElementById('hint').style.opacity=0;});
   cv.addEventListener('pointermove',function(e){if(drag){az-=(e.clientX-px)*0.008;px=e.clientX;}});
   cv.addEventListener('pointerup',function(){drag=false;});
   cv.addEventListener('pointercancel',function(){drag=false;});
-
   window.addEventListener('resize',resize);
 
   function frame(ts){
@@ -464,12 +481,11 @@ footer{margin-top:34px;border-top:1px solid var(--line);padding-top:22px;
     if(playing&&!scrub) tt=(tt+dt*W_ANG)%TWO;
     if(autspin) az+=dt*0.14;
     var frac=(tt%TWO)/TWO;
-    fillEl.style.width=(frac*100).toFixed(1)+'%';
-    knobEl.style.left=(frac*100).toFixed(1)+'%';
+    fillEl.style.width=(frac*100).toFixed(1)+'%'; knobEl.style.left=(frac*100).toFixed(1)+'%';
     render(tt); drawPlot(tt);
     requestAnimationFrame(frame);
   }
-  resize(); setScene(0); setPlay(true); requestAnimationFrame(frame);
+  resize(); setScene(0); setTrack('circle'); setPlay(true); requestAnimationFrame(frame);
   setTimeout(function(){document.getElementById('hint').style.opacity=0;},6000);
 })();
 </script>
