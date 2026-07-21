@@ -1,0 +1,98 @@
+[
+  {
+    "id": "circle-bare",
+    "title": "Circle, no payload",
+    "watch": "The clean case. The gatekeeper certifies nearly every tick, so the quad races the line.",
+    "track": "circle 4",
+    "plant": "bare quadrotor",
+    "load": "bare",
+    "scope": "ood",
+    "commit": 0.99,
+    "gates": 4,
+    "kb": 5714
+  },
+  {
+    "id": "splits-bare",
+    "title": "Split-S, no payload",
+    "watch": "An inverted, aggressive track. Watch the quad bank and roll: the tilt is the real attitude, not a flat icon.",
+    "track": "uzh split s 7",
+    "plant": "bare quadrotor",
+    "load": "bare",
+    "scope": "ood",
+    "commit": 0.35,
+    "gates": 7,
+    "kb": 5810
+  },
+  {
+    "id": "grandprix-bare",
+    "title": "Grand Prix, no payload",
+    "watch": "Ten gates on the bare quad, gatekeeper airtight. This is the track we follow as a load goes on.",
+    "track": "grand prix 10",
+    "plant": "bare quadrotor",
+    "load": "bare",
+    "scope": "ood",
+    "commit": 0.68,
+    "gates": 10,
+    "kb": 5406
+  },
+  {
+    "id": "grandprix-slung-frozen",
+    "title": "Grand Prix, swinging load, model frozen",
+    "watch": "Same track, now a tethered load the model never saw. The band is too wide to certify, so the gatekeeper refuses to commit and crawls the backup.",
+    "track": "grand prix 10",
+    "plant": "slung payload",
+    "load": "slung",
+    "scope": "ood",
+    "commit": 0.0,
+    "gates": 10,
+    "kb": 5888
+  },
+  {
+    "id": "grandprix-slung-learned",
+    "title": "Grand Prix, swinging load, model learned",
+    "watch": "Learn the residual on this track and the commit comes back: the quad races the swinging load instead of crawling.",
+    "track": "grand prix 10",
+    "plant": "slung payload",
+    "load": "slung",
+    "scope": "pre",
+    "commit": 0.77,
+    "gates": 10,
+    "kb": 5818
+  },
+  {
+    "id": "grandprix-rigid-frozen",
+    "title": "Grand Prix, bolted-on load, model frozen",
+    "watch": "A rigid load bolted under the quad, model frozen. It commits on the straights, falls back through the hard gates.",
+    "track": "grand prix 10",
+    "plant": "rigid payload",
+    "load": "rigid",
+    "scope": "ood",
+    "commit": 0.37,
+    "gates": 10,
+    "kb": 6008
+  },
+  {
+    "id": "grandprix-rigid-learned",
+    "title": "Grand Prix, bolted-on load, model learned",
+    "watch": "The same bolted-on load with the residual learned: it commits through most of the track.",
+    "track": "grand prix 10",
+    "plant": "rigid payload",
+    "load": "rigid",
+    "scope": "pre",
+    "commit": 0.85,
+    "gates": 10,
+    "kb": 5591
+  },
+  {
+    "id": "chicane-slung-frozen",
+    "title": "Chicane, swinging load (the frontier)",
+    "watch": "The hardest reversals plus a swinging load. Even a learned model cannot certify this yet: this is the open problem.",
+    "track": "chicane 6",
+    "plant": "slung payload",
+    "load": "slung",
+    "scope": "ood",
+    "commit": 0.01,
+    "gates": 6,
+    "kb": 5995
+  }
+]

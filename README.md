@@ -2,51 +2,63 @@
 
 Companion website for the SURE 2026 poster **Safe Drone Racing With an Unknown
 Payload** (Brandon McDonald, Kaleb Ben Naveed, Dimitra Panagou). Attendees scan
-the QR on the poster and get a live, hand-in-your-phone version of the drone: a
-real-time 3D simulator plus the poster's four-part story.
+the QR on the poster and open real, interactive runs from the gatekeeper
+simulator: the quad's true attitude, the per-tick commit/reject timeline, and
+charts of how far off the line an unknown payload pushes it.
 
 **Live URL:** https://brandmcd.github.io/sure-2026/
 
 ## What is here
 
-- `index.html` is the whole site. It is self-contained: inline CSS and JS, a
-  hand-written canvas simulator, no build step, no external requests, no
-  dependencies. It loads instantly and works offline once cached, which matters
-  on conference wifi.
-- `assets/qr.png` and `assets/qr.svg` are the QR that points at the live URL.
-  Use the SVG on the printed poster; it is vector and stays crisp at any size.
-- `make_qr.py` regenerates both from a single URL constant.
+- `index.html` is the landing page: a live embedded run plus a gallery of eight
+  scenes grouped as a story (clean flight, hang a load, learn the residual, the
+  frontier). Styled to match the research viewer.
+- `sim/*.html` are the interactive scenes. Each is a real run rendered by the
+  three.js viewer. They share one copy of the viewer under `viewer/` instead of
+  embedding it, so the payload per scene is just the trajectory.
+- `viewer/` holds the shared viewer: `three.module.min.js`, `viewer.js`,
+  `viewer.css` (a copy of the research repo's `viz/web`, with the charts kept
+  visible on phones).
+- `assets/qr.png` and `assets/qr.svg` are the QR to the live URL. Use the SVG on
+  the printed poster.
+- `make_qr.py` regenerates the QR. `build_scenes.py` regenerates the scenes.
 
-The simulator has three scenes: the bare drone (safety check airtight), an
-unknown swinging payload (the check still says safe while the drone leaves the
-corridor), and the same load with a learned residual (back inside the corridor).
-Drag to orbit, press play, scrub, change speed.
+Each scene: drag to orbit, right-drag to pan, scroll to zoom, press play. The
+bottom strip is the safety check over time (green commit, red backup). The
+charts show the disturbance the model must learn and the off-path distance
+against the corridor wall.
 
-## Deploy to GitHub Pages
+## Regenerate the scenes
+
+The scenes are built from run `.npz` files in the research repo, so run this
+from there with its virtual environment:
+
+```bash
+cd ~/DASC/neural-dual-gtk
+.venv/bin/python ~/DASC/sure-2026/build_scenes.py
+```
+
+Edit `SCENES` in `build_scenes.py` to change which runs ship, or `MAX_SECONDS`
+to trim the tail. The viewer code lives in `~/DASC/neural-dual-gtk/viz/web`; if
+it changes, recopy `viewer.js` / `viewer.css` / `vendor/three.module.min.js`
+into `viewer/`.
+
+## Deploy
+
+Already live on GitHub Pages from `main` at the root. To update:
 
 ```bash
 cd ~/DASC/sure-2026
-git init && git add -A && git commit -m "Companion site for the SURE 2026 poster"
-gh repo create sure-2026 --public --source=. --remote=origin --push
+git add -A && git commit -m "..." && git push
 ```
 
-Then in the repository settings, under Pages, set the source to the `main`
-branch at the root. The site goes live at the URL above within a minute or two.
+Pages rebuilds in a minute or so. If the scan URL ever changes, edit `URL` in
+`make_qr.py`, rerun `uv run --with segno python make_qr.py`, and drop the new
+SVG onto the poster.
 
-## Change the scan URL
+## Notes
 
-If the repository name or account changes, edit `URL` at the top of
-`make_qr.py`, then regenerate the QR and drop the new SVG onto the poster:
-
-```bash
-uv run --with segno python make_qr.py
-```
-
-## Numbers
-
-The story cards track the printed poster: 44/44 gates threaded, a bare-drone
-gatekeeper with zero corridor violations, an unmodeled load that leaves the
-corridor on 4 of 6 tracks bolted on and 4 of 6 on a cable while every plan still
-certifies safe, and 9 to 0 false-safe approvals once the check learns the load.
 All results are in simulation on the full nonlinear drone; the guarantee is
-conditional on the sets checked.
+conditional on the sets checked. The learned residual clearly helps where the
+load is well excited (Grand Prix: swinging 0 to 77 percent commit, bolted-on 37
+to 85), and the swinging load on the tightest tracks stays the open frontier.

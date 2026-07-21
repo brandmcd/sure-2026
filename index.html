@@ -4,507 +4,236 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
-<meta name="theme-color" content="#0A0E17">
-<meta name="description" content="Companion site for the SURE 2026 poster. A live, hand-in-your-phone drone-racing simulator: press play, drag to orbit, and watch an unknown payload push the drone out of its safe corridor while the safety check still says all clear.">
+<meta name="theme-color" content="#0e1117">
+<meta name="description" content="Companion site for the SURE 2026 poster. Real, interactive runs from a drone-racing safety-gatekeeper simulator: open one, press play, and watch the quad's true attitude, the commit/reject timeline, and how far off the line an unknown payload pushes it.">
 <meta property="og:title" content="Safe Drone Racing With an Unknown Payload">
-<meta property="og:description" content="Live simulator companion to the SURE 2026 poster. Watch a safety check green-light a move the loaded drone cannot fly.">
+<meta property="og:description" content="Real interactive runs from the gatekeeper simulator. Companion to the SURE 2026 poster.">
 <title>Safe Drone Racing With an Unknown Payload · SURE 2026</title>
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <style>
-*,*::before,*::after{box-sizing:border-box}
 :root{
-  --night:#0A0E17; --panel:#121826; --panel2:#0E1320; --line:#20293F;
-  --ink:#EAEEF7; --body:#C3CBDA; --muted:#828DA4; --faint:#5C6680;
-  --navy:#002647; --maize:#FFCB05; --safe:#34D399; --breach:#F5654E; --warn:#F5B23D;
-  --flown:#FF8A3D; --teal:#2DD4BF; --mag:#E84BC9; --corridor:#3E6DB5;
-  --mono:ui-monospace,"SF Mono","Cascadia Code","JetBrains Mono",Menlo,Consolas,monospace;
-  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
-  --serif:Georgia,"Times New Roman",serif;
+  --bg:#0e1117; --panel:#141821; --panel-2:#11141b; --hair:rgba(255,255,255,.10);
+  --hover:rgba(255,255,255,.05);
+  --ink:#f2f3f5; --ink-2:#c3c6cc; --ink-3:#8b919c; --ink-4:#6a7180;
+  --accent:#4f8fef; --commit:#2ec95a; --reject:#ff4d4d; --amber:#f0b429;
+  --corridor:#4f8fef; --flown:#f5883c; --committed:#e74ec0; --load:#1fc9b0;
+  --r:12px; --r-sm:8px; --r-xs:6px;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   color-scheme:dark;
 }
+*,*::before,*::after{box-sizing:border-box}
 html,body{margin:0}
-body{background:var(--night);color:var(--body);font-family:var(--sans);
-  -webkit-text-size-adjust:100%;overflow-x:hidden;
-  background-image:radial-gradient(1100px 560px at 82% -12%,rgba(0,39,76,.55),transparent 60%)}
-a{color:var(--maize);text-underline-offset:2px}
-:focus-visible{outline:2px solid var(--maize);outline-offset:2px;border-radius:4px}
-.shell{max-width:860px;margin-inline:auto;padding:22px 16px 46px}
+body{background:var(--bg);color:var(--ink-2);font:15px/1.5 var(--sans);
+  -webkit-text-size-adjust:100%;overflow-x:hidden}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline;text-underline-offset:2px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+.wrap{max-width:1080px;margin-inline:auto;padding:22px 18px 56px}
 
 /* header */
-.brand{display:flex;align-items:center;gap:10px;margin-bottom:14px}
-.mark{display:grid;place-items:center;width:30px;height:30px;border-radius:7px;
-  background:var(--maize);color:var(--navy);font-family:var(--serif);font-weight:700;font-size:19px;
-  box-shadow:0 0 0 1px rgba(255,203,5,.35)}
-.venue{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--faint)}
-.venue b{color:var(--maize);font-weight:600}
-h1{font-family:var(--serif);color:var(--ink);font-weight:700;line-height:1.06;
-  font-size:clamp(1.7rem,7vw,2.7rem);letter-spacing:-.015em;margin:2px 0 0}
-.by{margin:11px 0 0;font-size:.9rem;color:var(--muted)}
-.by b{color:var(--body);font-weight:600}
-.hook{margin:14px 0 0;font-size:1.02rem;line-height:1.55;color:var(--body);max-width:60ch}
-.hook b{color:var(--ink)}
+.venue{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:600;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--ink-4)}
+.venue b{color:var(--accent);font-weight:650}
+h1{color:var(--ink);font-size:clamp(1.7rem,5.4vw,2.5rem);line-height:1.08;font-weight:680;
+  letter-spacing:-.02em;margin:12px 0 0}
+.by{margin:9px 0 0;font-size:.95rem;color:var(--ink-3)}
+.by b{color:var(--ink-2);font-weight:600}
+.intro{margin:16px 0 0;font-size:1rem;line-height:1.6;color:var(--ink-2);max-width:66ch}
+.intro b{color:var(--ink);font-weight:600}
 
-/* tabs */
-.tabs{display:flex;gap:6px;background:var(--panel);border:1px solid var(--line);
-  border-radius:12px;padding:5px;margin:22px 0 12px;overflow-x:auto;scrollbar-width:none}
-.tabs::-webkit-scrollbar{display:none}
-.tab{flex:1 0 auto;border:0;background:transparent;color:var(--muted);cursor:pointer;
-  font-family:var(--sans);font-size:.9rem;font-weight:600;padding:11px 14px;border-radius:8px;
-  white-space:nowrap;transition:background .15s,color .15s;display:flex;align-items:center;gap:8px;min-height:44px}
-.tab .swatch{width:9px;height:9px;border-radius:50%;flex:none}
-.tab[aria-selected="true"]{background:var(--night);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
-
-/* viewer */
-.viewer{position:relative;border:1px solid var(--line);border-radius:16px;overflow:hidden;
-  background:#05070d;touch-action:none}
-canvas{display:block;width:100%;height:min(62vh,540px);cursor:grab}
-canvas:active{cursor:grabbing}
-.hud{position:absolute;top:12px;left:12px;right:12px;display:flex;justify-content:space-between;
-  align-items:flex-start;gap:10px;pointer-events:none}
-.chip{font-family:var(--mono);font-size:11.5px;letter-spacing:.02em;color:var(--ink);
-  background:rgba(8,11,18,.74);border:1px solid var(--line);padding:8px 11px;border-radius:8px;
-  backdrop-filter:blur(6px);line-height:1.5;max-width:56%}
-.chip .sub{color:var(--muted)}
-.verdicts{display:flex;flex-direction:column;gap:6px;align-items:flex-end}
-.vd{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.05em;
-  padding:7px 10px;border-radius:8px;display:inline-flex;align-items:center;gap:7px;
-  background:rgba(8,11,18,.74);backdrop-filter:blur(6px);border:1px solid transparent;white-space:nowrap}
-.vd .k{color:var(--faint);font-weight:600;letter-spacing:.12em;text-transform:uppercase;font-size:9px}
-.vd .dot{width:8px;height:8px;border-radius:50%}
-.hint{position:absolute;bottom:11px;left:0;right:0;text-align:center;font-family:var(--mono);
-  font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);
-  pointer-events:none;transition:opacity .4s}
-
-/* read line */
-.read{margin:13px 2px 0;font-size:.98rem;line-height:1.55;color:var(--body);
-  border-left:2px solid var(--line);padding-left:12px;transition:border-color .2s}
-.read b{color:var(--ink)}
-
-/* controls */
-.controls{display:flex;align-items:center;gap:12px;margin-top:14px;flex-wrap:wrap}
-.play{border:0;background:var(--maize);color:var(--navy);width:48px;height:48px;border-radius:50%;
-  cursor:pointer;display:grid;place-items:center;flex:none}
-.play svg{width:19px;height:19px;fill:currentColor}
-.scrub{flex:1 1 160px;height:8px;background:var(--line);border-radius:4px;position:relative;cursor:pointer;min-width:120px}
-.scrub .fill{position:absolute;top:0;bottom:0;left:0;background:linear-gradient(90deg,var(--maize),#ffd94d);
-  border-radius:4px;width:0}
-.spd{font-family:var(--mono);font-size:12px;color:var(--muted);background:var(--panel);
-  border:1px solid var(--line);border-radius:9px;padding:11px 12px;cursor:pointer;flex:none;min-height:44px}
-.spd b{color:var(--ink)}
+/* hero */
+.hero{margin:22px 0 8px;border:1px solid var(--hair);border-radius:var(--r);overflow:hidden;
+  background:#05070d;position:relative}
+.hero iframe{display:block;width:100%;height:min(62vh,540px);border:0}
+.hero .cap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  padding:10px 14px;background:var(--panel);border-top:1px solid var(--hair);font-size:.86rem;color:var(--ink-3)}
+.hero .cap b{color:var(--ink-2);font-weight:600}
 
 /* legend */
-.legend{display:flex;flex-wrap:wrap;gap:11px 18px;margin-top:16px;
-  font-family:var(--mono);font-size:11.5px;letter-spacing:.02em;color:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:9px 16px;margin:16px 2px 6px;
+  font-size:12px;color:var(--ink-3)}
 .legend span{display:inline-flex;align-items:center;gap:7px}
-.legend i{width:14px;height:4px;border-radius:2px;display:inline-block}
-.legend i.dot{width:9px;height:9px;border-radius:50%}
+.legend i{width:15px;height:4px;border-radius:2px;display:inline-block}
+.legend i.d{width:9px;height:9px;border-radius:50%}
+.readkey{margin:8px 2px 0;font-size:12.5px;color:var(--ink-4);line-height:1.6;max-width:78ch}
+.readkey b{color:var(--ink-3);font-weight:600}
 
-/* story */
-.story{margin-top:38px}
-.story h2{font-family:var(--serif);color:var(--ink);font-size:1.28rem;font-weight:700;margin:0 0 4px}
-.story .lede{color:var(--muted);font-size:.94rem;margin:0 0 16px;max-width:56ch}
-.cards{display:grid;grid-template-columns:1fr;gap:12px}
-@media(min-width:620px){.cards{grid-template-columns:1fr 1fr}}
-.card{position:relative;background:linear-gradient(180deg,var(--panel),var(--panel2));
-  border:1px solid var(--line);border-radius:15px;padding:17px 17px 15px;
-  cursor:pointer;transition:border-color .18s,transform .18s;text-align:left;color:inherit;font:inherit;display:block;width:100%}
-.card:hover,.card:focus-visible{border-color:#33405f;transform:translateY(-2px)}
-.card .num{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.16em;color:var(--maize)}
-.card h3{color:var(--ink);font-size:1.06rem;font-weight:700;margin:7px 0 2px;letter-spacing:-.01em}
-.card .say{color:var(--muted);font-size:.86rem;font-style:italic;margin:0 0 10px}
-.card p{color:var(--body);font-size:.94rem;line-height:1.5;margin:0 0 12px}
-.card ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px}
-.card li{font-family:var(--mono);font-size:11.5px;line-height:1.5;color:var(--body);
-  position:relative;padding-left:15px}
-.card li::before{content:"";position:absolute;left:0;top:.52em;width:6px;height:6px;
-  border-radius:50%;background:var(--accent,var(--maize))}
-.card .go{margin-top:12px;font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
-.card .go b{color:var(--maize);font-weight:600}
-.card.c1{--accent:var(--maize)} .card.c2{--accent:var(--safe)}
-.card.c3{--accent:var(--breach)} .card.c4{--accent:var(--teal)}
-.big{font-family:var(--serif);color:var(--ink);font-weight:700;font-size:1.05rem;white-space:nowrap}
+/* sections */
+.sec{margin-top:34px}
+.sec-h{display:flex;align-items:baseline;gap:10px;margin:0 2px 14px}
+.sec-h .n{font-size:12px;font-weight:700;letter-spacing:.14em;color:var(--accent)}
+.sec-h h2{color:var(--ink);font-size:1.12rem;font-weight:650;margin:0;letter-spacing:-.01em}
+.sec-h p{color:var(--ink-3);font-size:.9rem;margin:0}
+
+/* cards */
+.grid{display:grid;grid-template-columns:1fr;gap:12px}
+@media(min-width:600px){.grid{grid-template-columns:1fr 1fr}}
+@media(min-width:900px){.grid{grid-template-columns:1fr 1fr 1fr}}
+.card{display:flex;flex-direction:column;background:linear-gradient(180deg,var(--panel),var(--panel-2));
+  border:1px solid var(--hair);border-radius:var(--r);padding:14px 15px 13px;color:inherit;
+  transition:border-color .16s,transform .16s}
+.card:hover{border-color:#2b3346;transform:translateY(-2px);text-decoration:none}
+.card .top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.card h3{color:var(--ink);font-size:1rem;font-weight:640;margin:0;letter-spacing:-.01em}
+.badge{flex:none;display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:650;
+  font-variant-numeric:tabular-nums;padding:3px 8px;border-radius:20px;
+  border:1px solid var(--bc,var(--hair));color:var(--bc,var(--ink-3));background:color-mix(in srgb,var(--bc,#888) 12%,transparent)}
+.badge .d{width:7px;height:7px;border-radius:50%;background:var(--bc,var(--ink-3))}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0}
+.chip{font-size:11px;color:var(--ink-3);background:var(--hover);border:1px solid var(--hair);
+  border-radius:var(--r-xs);padding:2px 7px;white-space:nowrap}
+.chip.load{color:var(--load);border-color:color-mix(in srgb,var(--load) 40%,transparent)}
+.chip.frozen{color:var(--amber);border-color:color-mix(in srgb,var(--amber) 40%,transparent)}
+.chip.learned{color:var(--commit);border-color:color-mix(in srgb,var(--commit) 40%,transparent)}
+.card .watch{margin:11px 0 0;font-size:.9rem;line-height:1.5;color:var(--ink-2)}
+.card .go{margin-top:12px;padding-top:11px;border-top:1px solid var(--hair);
+  font-size:12px;font-weight:600;color:var(--accent);display:flex;align-items:center;gap:6px}
+.card .go svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 
 /* footer */
-footer{margin-top:40px;border-top:1px solid var(--line);padding-top:22px}
-.frame{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start;justify-content:space-between}
-.frame .txt{flex:1 1 340px;min-width:260px}
-.honest{font-size:.9rem;line-height:1.6;color:var(--muted)}
-.honest b{color:var(--body)}
-.refs{margin-top:14px;font-family:var(--mono);font-size:10.5px;line-height:1.7;color:var(--faint)}
-.refs b{color:var(--muted);font-weight:600}
-.qr{flex:0 0 auto;text-align:center;background:var(--panel);border:1px solid var(--line);
-  border-radius:14px;padding:14px}
-.qr img{width:132px;height:132px;display:block;border-radius:8px;background:#fff;padding:6px}
-.qr span{display:block;margin-top:9px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;
-  text-transform:uppercase;color:var(--faint)}
-.sig{margin-top:22px;font-size:.85rem;color:var(--muted);line-height:1.6}
-.sig b{color:var(--body);font-weight:600}
+footer{margin-top:44px;border-top:1px solid var(--hair);padding-top:24px;
+  display:flex;gap:22px;flex-wrap:wrap;justify-content:space-between}
+.foot-txt{flex:1 1 360px;min-width:260px}
+.honest{font-size:.9rem;line-height:1.6;color:var(--ink-3)}
+.honest b{color:var(--ink-2)}
+.refs{margin-top:14px;font-size:11px;line-height:1.7;color:var(--ink-4)}
+.refs b{color:var(--ink-3)}
+.qr{flex:0 0 auto;text-align:center;background:var(--panel);border:1px solid var(--hair);
+  border-radius:var(--r);padding:14px}
+.qr img{width:124px;height:124px;display:block;border-radius:var(--r-sm);background:#fff;padding:6px}
+.qr span{display:block;margin-top:9px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-4)}
+.sig{width:100%;margin-top:20px;font-size:.85rem;color:var(--ink-3);line-height:1.6}
+.sig b{color:var(--ink-2);font-weight:600}
 </style>
 </head>
 <body>
-<div class="shell">
+<div class="wrap">
 
   <header>
-    <div class="brand">
-      <span class="mark" aria-hidden="true">M</span>
-      <span class="venue"><b>SURE 2026</b> · University of Michigan Robotics</span>
-    </div>
-    <h1>Safe Drone Racing<br>With an Unknown Payload</h1>
+    <span class="venue"><b>SURE 2026</b> · University of Michigan Robotics</span>
+    <h1>Safe Drone Racing With an Unknown Payload</h1>
     <p class="by"><b>Brandon McDonald</b> · Kaleb Ben Naveed · Dimitra Panagou</p>
-    <p class="hook">You scanned the poster. Here is the drone, <b>live in your hand</b>: press play, drag to orbit, and watch what an unknown payload does to its safe corridor while the safety check still says all clear.</p>
+    <p class="intro">These are <b>real runs</b> from the gatekeeper simulator, not illustrations. Open one and press play: the quad <b>banks and tilts</b> the way the real attitude does, the strip along the bottom turns <b style="color:var(--commit)">green</b> where the safety check commits and <b style="color:var(--reject)">red</b> where it refuses, and the charts track how far off the line an unknown payload drags it. Drag to orbit.</p>
   </header>
 
-  <section id="sim" aria-label="Interactive simulator">
-    <div class="tabs" role="tablist" aria-label="Example runs" id="tabs">
-      <button class="tab" role="tab" aria-selected="true"  data-i="0"><span class="swatch" style="background:var(--safe)"></span>Bare drone</button>
-      <button class="tab" role="tab" aria-selected="false" data-i="1"><span class="swatch" style="background:var(--breach)"></span>Unknown payload</button>
-      <button class="tab" role="tab" aria-selected="false" data-i="2"><span class="swatch" style="background:var(--teal)"></span>+ Learned residual</button>
+  <div class="hero">
+    <iframe src="sim/grandprix-slung-learned.html?play=1&charts=1" title="Live run: Grand Prix with a swinging load and a learned residual" loading="eager"></iframe>
+    <div class="cap">
+      <span><b>Grand Prix, swinging load, model learned.</b> The residual is learned, so the gatekeeper commits and the quad races the swinging load.</span>
+      <a href="sim/grandprix-slung-learned.html?play=1">open full screen &rarr;</a>
     </div>
+  </div>
 
-    <div class="viewer">
-      <canvas id="c"></canvas>
-      <div class="hud">
-        <div class="chip"><span class="scene" id="sceneName">circle · 4 gates</span><br><span class="sub" id="sceneSub">gatekeeper on, every move rehearsed</span></div>
-        <div class="verdicts">
-          <div class="vd" id="vCheck"><span class="k">check</span><span class="dot"></span><b id="checkT">CERTIFIED SAFE</b></div>
-          <div class="vd" id="vOut"><span class="k">outcome</span><span class="dot"></span><b id="outT">IN CORRIDOR</b></div>
-        </div>
-      </div>
-      <div class="hint" id="hint">drag to orbit · scroll or pinch to zoom</div>
-    </div>
+  <div class="legend">
+    <span><i class="d" style="background:var(--corridor)"></i>safe corridor</span>
+    <span><i style="background:var(--flown)"></i>flown path</span>
+    <span><i class="d" style="background:var(--reject)"></i>out of corridor</span>
+    <span><i style="background:var(--committed)"></i>committed plan</span>
+    <span><i style="background:var(--commit)"></i>candidate (certifying)</span>
+    <span><i class="d" style="background:var(--load)"></i>slung load</span>
+  </div>
+  <p class="readkey"><b>Reading a run:</b> the bottom strip is the safety check over time, one block per tick, green where it commits the racing plan and red where it falls back to the safe stopping maneuver. The charts show the disturbance the model has to learn and the distance off the line against the corridor wall. Everything is in simulation on the full nonlinear drone.</p>
 
-    <p class="read" id="read">On the bare drone the safety check is airtight: every gate, every track, zero corridor violations.</p>
+  <section class="sec">
+    <div class="sec-h"><span class="n">01</span><h2>Clean flight, the safety check is airtight</h2></div>
+    <div class="grid">
 
-    <div class="controls">
-      <button class="play" id="play" aria-label="Play or pause">
-        <svg id="playIcon" viewBox="0 0 24 24"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
-      </button>
-      <div class="scrub" id="scrub"><div class="fill" id="scrubFill"></div></div>
-      <button class="spd" id="spd">speed <b>1&times;</b></button>
-    </div>
+      <a class="card" href="sim/circle-bare.html?play=1">
+        <div class="top"><h3>Circle</h3><span class="badge" style="--bc:var(--commit)"><span class="d"></span>commit 99%</span></div>
+        <div class="chips"><span class="chip">4 gates</span><span class="chip">no payload</span></div>
+        <p class="watch">The clean case. The gatekeeper certifies almost every tick, so the quad races the line.</p>
+        <span class="go">open run <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+      </a>
 
-    <div class="legend">
-      <span><i style="background:var(--flown)"></i>flown path</span>
-      <span><i style="background:var(--breach)"></i>out of corridor</span>
-      <span><i class="dot" style="background:var(--corridor)"></i>safe corridor</span>
-      <span><i class="dot" style="background:var(--teal)"></i>slung payload</span>
-      <span><i style="background:#59617a"></i>gate</span>
+      <a class="card" href="sim/splits-bare.html?play=1">
+        <div class="top"><h3>Split-S</h3><span class="badge" style="--bc:var(--amber)"><span class="d"></span>commit 35%</span></div>
+        <div class="chips"><span class="chip">7 gates</span><span class="chip">no payload</span><span class="chip">inverted</span></div>
+        <p class="watch">An aggressive inverted track. Watch the quad bank and roll: that is the true attitude, not a flat icon.</p>
+        <span class="go">open run <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+      </a>
+
+      <a class="card" href="sim/grandprix-bare.html?play=1">
+        <div class="top"><h3>Grand Prix</h3><span class="badge" style="--bc:var(--commit)"><span class="d"></span>commit 68%</span></div>
+        <div class="chips"><span class="chip">10 gates</span><span class="chip">no payload</span></div>
+        <p class="watch">Ten gates on the bare quad, airtight. This is the track we follow as a load goes on.</p>
+        <span class="go">open run <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+      </a>
+
     </div>
   </section>
 
-  <section class="story">
-    <h2>What the poster shows</h2>
-    <p class="lede">Four steps: race the gates, prove each move safe, break it with a hidden load, then teach the check what it is missing. Tap a card to jump the simulator to that moment.</p>
-    <div class="cards" id="cards">
+  <section class="sec">
+    <div class="sec-h"><span class="n">02</span><h2>Hang an unknown load, the check goes conservative</h2></div>
+    <div class="grid">
 
-      <button class="card c1" data-i="0">
-        <div class="num">1 · RACING</div>
-        <h3>Time-optimal gate racing</h3>
-        <p class="say">The drone picks its own speed.</p>
-        <p>A planner draws the fastest line through the gates. A gate-aware weight tightens only at each gate, so the drone cuts corners in between and snaps onto the line right where it matters.</p>
-        <ul>
-          <li><span class="big">44 / 44</span>&nbsp; gates threaded, vs 39 / 44 for a plain controller, at the same lap time.</li>
-          <li>Up to about 40 mph on the full nonlinear drone; about 1.5 ms to replan each step.</li>
-          <li>Simulator, tracks, and a 3D viewer, all built from scratch, all in simulation.</li>
-        </ul>
-        <div class="go">watch the <b>bare drone</b> run &uarr;</div>
-      </button>
+      <a class="card" href="sim/grandprix-slung-frozen.html?play=1">
+        <div class="top"><h3>Grand Prix, swinging load</h3><span class="badge" style="--bc:var(--reject)"><span class="d"></span>commit 0%</span></div>
+        <div class="chips"><span class="chip load">swinging load</span><span class="chip frozen">model frozen</span></div>
+        <p class="watch">A tethered load the model never saw. The uncertainty band is too wide to certify, so it refuses to commit and crawls the backup. The strip is all red.</p>
+        <span class="go">open run <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+      </a>
 
-      <button class="card c2" data-i="0">
-        <div class="num">2 · SAFETY</div>
-        <h3>The safety gatekeeper</h3>
-        <p class="say">Rehearse every move, commit only what it can prove.</p>
-        <p>Before committing to any move, the gatekeeper rehearses it in simulation with an escape route: a stopping maneuver it could trigger at any moment. It commits only the part whose escape stays inside the corridor.</p>
-        <ul>
-          <li>On the bare drone it is airtight: every gate, every track, <span class="big">zero</span> corridor violations.</li>
-          <li>Each rehearsal takes 6 to 8 ms, fast enough to run during flight.</li>
-          <li>A finite rehearsal buys safety for all future time. The guarantee is conditional on the sets it checks.</li>
-        </ul>
-        <div class="go">watch the <b>bare drone</b> run &uarr;</div>
-      </button>
+      <a class="card" href="sim/grandprix-rigid-frozen.html?play=1">
+        <div class="top"><h3>Grand Prix, bolted-on load</h3><span class="badge" style="--bc:var(--amber)"><span class="d"></span>commit 37%</span></div>
+        <div class="chips"><span class="chip load">bolted-on load</span><span class="chip frozen">model frozen</span></div>
+        <p class="watch">A rigid load bolted under the quad. It commits on the straights and falls back through the hard gates.</p>
+        <span class="go">open run <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+      </a>
 
-      <button class="card c3" data-i="1">
-        <div class="num">3 · THE GAP</div>
-        <h3>The payload gap</h3>
-        <p class="say">Now hang on an unknown load.</p>
-        <p>The safety check still rehearses the empty drone, so it clears plans the loaded drone cannot fly. Provably correct about a drone that is not the one flying.</p>
-        <ul>
-          <li>Leaves the corridor on <span class="big">4 of 6</span> tracks bolted on, <span class="big">4 of 6</span> on a cable, every plan still certified safe.</li>
-          <li>The load alone swings <span class="big">1.2 m</span> off the line, inside a 0.5 m corridor: twice the safe width, and the check cannot see it.</li>
-          <li>A safe verdict computed against the wrong physics.</li>
-        </ul>
-        <div class="go">watch it <b>leave the corridor</b> &uarr;</div>
-      </button>
+    </div>
+  </section>
 
-      <button class="card c4" data-i="2">
-        <div class="num">4 · CLOSE IT</div>
-        <h3>Close the gap, and what is next</h3>
-        <p class="say">Teach the check what it is missing.</p>
-        <p>The gap between plan and reality is just a push and a twist: six numbers, measurable in mid-air. A small model learns them, so the controller braces for the load and the check finally rehearses the real drone.</p>
-        <ul>
-          <li><span class="big">9 &rarr; 0</span> false-safe approvals once the check learns the load.</li>
-          <li>The residual pulls the drone back toward its corridor; the hardest swinging tracks still slip a little.</li>
-          <li>Next: probe the load in flight, then certify against the whole band of plausible loads.</li>
-        </ul>
-        <div class="go">watch the <b>learned residual</b> &uarr;</div>
-      </button>
+  <section class="sec">
+    <div class="sec-h"><span class="n">03</span><h2>Learn what the check is missing, commit comes back</h2></div>
+    <div class="grid">
+
+      <a class="card" href="sim/grandprix-slung-learned.html?play=1">
+        <div class="top"><h3>Grand Prix, swinging load</h3><span class="badge" style="--bc:var(--commit)"><span class="d"></span>commit 77%</span></div>
+        <div class="chips"><span class="chip load">swinging load</span><span class="chip learned">model learned</span></div>
+        <p class="watch">The same swinging load, but the residual is learned on this track. The commit comes back and the quad races instead of crawling. Compare its strip to the frozen run.</p>
+        <span class="go">open run <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+      </a>
+
+      <a class="card" href="sim/grandprix-rigid-learned.html?play=1">
+        <div class="top"><h3>Grand Prix, bolted-on load</h3><span class="badge" style="--bc:var(--commit)"><span class="d"></span>commit 85%</span></div>
+        <div class="chips"><span class="chip load">bolted-on load</span><span class="chip learned">model learned</span></div>
+        <p class="watch">The same bolted-on load with the residual learned. It commits through most of the track, close to the bare-quad pace.</p>
+        <span class="go">open run <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+      </a>
+
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="sec-h"><span class="n">04</span><h2>The open frontier</h2></div>
+    <div class="grid">
+
+      <a class="card" href="sim/chicane-slung-frozen.html?play=1">
+        <div class="top"><h3>Chicane, swinging load</h3><span class="badge" style="--bc:var(--reject)"><span class="d"></span>commit 1%</span></div>
+        <div class="chips"><span class="chip load">swinging load</span><span class="chip frozen">frontier</span></div>
+        <p class="watch">The hardest reversals plus a swinging load. Even a learned model cannot certify this yet. Shrinking that uncertainty is where the project goes next.</p>
+        <span class="go">open run <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+      </a>
 
     </div>
   </section>
 
   <footer>
-    <div class="frame">
-      <div class="txt">
-        <p class="honest"><b>All results are in simulation</b> on the full nonlinear drone. The safety guarantee is conditional on the sets we check, not absolute. Payload presets are deliberately heavy and provisional. The task-by-task build is mine; the broader active-learning vision is the lab's direction.</p>
-        <p class="refs">
-          <b>[1]</b> D. R. Agrawal, R. Chen, D. Panagou. gatekeeper: Online Safety Verification and Control for Nonlinear Systems. IEEE Trans. Robotics, 2024.<br>
-          <b>[2]</b> A. Romero, S. Sun, P. Foehn, D. Scaramuzza. Model Predictive Contouring Control for Time-Optimal Quadrotor Flight. IEEE Trans. Robotics, 2022.<br>
-          <b>[3]</b> P. Foehn, A. Romero, D. Scaramuzza. Time-Optimal Planning for Quadrotor Waypoint Flight. Science Robotics, 2021.
-        </p>
-      </div>
-      <div class="qr">
-        <img src="assets/qr.png" alt="QR code linking to this page" width="132" height="132">
-        <span>share this page</span>
-      </div>
+    <div class="foot-txt">
+      <p class="honest"><b>All results are in simulation</b> on the full nonlinear drone. The safety guarantee is conditional on the sets we check, not absolute. Payload presets are deliberately heavy and provisional. The task-by-task build is mine; the broader active-learning vision is the lab's direction.</p>
+      <p class="refs">
+        <b>[1]</b> D. R. Agrawal, R. Chen, D. Panagou. gatekeeper: Online Safety Verification and Control for Nonlinear Systems. IEEE Trans. Robotics, 2024.<br>
+        <b>[2]</b> A. Romero, S. Sun, P. Foehn, D. Scaramuzza. Model Predictive Contouring Control for Time-Optimal Quadrotor Flight. IEEE Trans. Robotics, 2022.<br>
+        <b>[3]</b> P. Foehn, A. Romero, D. Scaramuzza. Time-Optimal Planning for Quadrotor Waypoint Flight. Science Robotics, 2021.
+      </p>
     </div>
-    <p class="sig"><b>Brandon McDonald</b> · Kaleb Ben Naveed · Dimitra Panagou<br>University of Michigan, College of Engineering · SURE 2026</p>
+    <div class="qr">
+      <img src="assets/qr.png" alt="QR code linking to this page" width="124" height="124">
+      <span>share this page</span>
+    </div>
+    <p class="sig"><b>Brandon McDonald</b> · Kaleb Ben Naveed · Dimitra Panagou &nbsp;·&nbsp; University of Michigan, College of Engineering · SURE 2026</p>
   </footer>
 
 </div>
-
-<script>
-(function(){
-  "use strict";
-  var cv = document.getElementById('c');
-  var ctx = cv.getContext('2d');
-  var W=0, H=0, DPR=1;
-  var TWO=Math.PI*2;
-
-  var R=4.2, RHO=0.62, NGATE=4, GW=1.75, GH=2.7, GROUND=-1.7, CABLE=1.45;
-
-  // Each scene reports two things the poster keeps separate: what the safety
-  // CHECK concluded, and what the loaded drone actually DID. Scene 1 is the
-  // point of the whole project: the check says safe, the outcome is a breach.
-  var EX = [
-    { name:'circle · 4 gates', sub:'gatekeeper on, every move rehearsed',
-      payload:false, swing:0,
-      check:{t:'CERTIFIED SAFE', c:'--safe'}, out:{t:'IN CORRIDOR', c:'--safe'},
-      read:'On the bare drone the safety check is airtight: every gate, every track, zero corridor violations.',
-      drift:function(t){ return 0.05*Math.sin(3*t+0.4); } },
-    { name:'circle · 4 gates', sub:'same check, a hidden load on a cable',
-      payload:true, swing:0.62,
-      check:{t:'CERTIFIED SAFE', c:'--safe'}, out:{t:'LEFT CORRIDOR', c:'--breach'},
-      read:'The check still rehearses the EMPTY drone, so it clears the plan. The real, loaded drone swings out of the corridor anyway. A safe verdict, wrong physics.',
-      drift:function(t){ return 0.95*Math.sin(2*t+0.6) + 0.34*Math.sin(5*t+1.1); } },
-    { name:'circle · 4 gates', sub:'the check now sees the load',
-      payload:true, swing:0.30,
-      check:{t:'CERTIFIED SAFE', c:'--safe'}, out:{t:'BACK IN CORRIDOR', c:'--safe'},
-      read:'Teach the check the missing push and twist, six numbers measurable in flight, and the loaded drone comes back inside the corridor.',
-      drift:function(t){ return 0.30*Math.sin(2*t+0.6) + 0.06*Math.sin(5*t); } }
-  ];
-  var cur = 0;
-
-  function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
-  var COL = {};
-  ['--flown','--breach','--corridor','--teal','--safe','--maize','--line','--faint'].forEach(function(k){COL[k]=css(k);});
-
-  function radial(t){ return [Math.cos(t), Math.sin(t)]; }
-  function flown(ex,t){
-    var d = ex.drift(t), c=Math.cos(t), s=Math.sin(t);
-    return [ (R+d)*c, (R+d)*s, 0.16*Math.sin(3*t+0.2) ];
-  }
-  function build(ex){
-    var SAMP=220, pts=[];
-    for(var i=0;i<=SAMP;i++){
-      var t=i/SAMP*TWO, d=ex.drift(t);
-      pts.push({ p:flown(ex,t), inside: Math.abs(d)<=RHO });
-    }
-    var gates=[];
-    for(var g=0; g<NGATE; g++){ gates.push(g/NGATE*TWO + 0.25); }
-    return { pts:pts, gates:gates };
-  }
-  var GEO = EX.map(build);
-
-  var az=0.7, el=0.52, D=12.4, autoRot=true, FOCAL=700, cx=0, cy=0;
-  function project(p){
-    var ca=Math.cos(az), sa=Math.sin(az), ce=Math.cos(el), se=Math.sin(el);
-    var rx = p[0]*ca - p[1]*sa;
-    var ry = p[0]*sa + p[1]*ca;
-    var ez = ry*se + p[2]*ce;
-    var ey = ry*ce - p[2]*se;
-    var depth = ey + D; if(depth < 0.3) depth = 0.3;
-    var s = FOCAL/depth;
-    return { x: cx + rx*s, y: cy - ez*s, depth: depth, s: s };
-  }
-
-  function resize(){
-    DPR = Math.min(window.devicePixelRatio||1, 2);
-    var r = cv.getBoundingClientRect();
-    W = Math.max(1, Math.round(r.width)); H = Math.max(1, Math.round(r.height));
-    cv.width = Math.round(W*DPR); cv.height = Math.round(H*DPR);
-    ctx.setTransform(DPR,0,0,DPR,0,0);
-    FOCAL = Math.min(W,H)*1.28 * (D/12.4);
-    cx = W/2; cy = H*0.55;
-  }
-
-  function moveTo(p){ var q=project(p); ctx.moveTo(q.x,q.y); }
-  function lineTo(p){ var q=project(p); ctx.lineTo(q.x,q.y); }
-  function ringPts(rad){ var a=[]; for(var i=0;i<=96;i++){ var t=i/96*TWO; a.push([rad*Math.cos(t),rad*Math.sin(t),0]); } return a; }
-
-  function drawGround(){
-    ctx.lineWidth=1; ctx.strokeStyle='rgba(120,140,180,0.09)';
-    var n=10, ext=7.5;
-    for(var i=-n;i<=n;i++){ var f=i/n*ext;
-      ctx.beginPath(); moveTo([f,-ext,GROUND]); lineTo([f,ext,GROUND]); ctx.stroke();
-      ctx.beginPath(); moveTo([-ext,f,GROUND]); lineTo([ext,f,GROUND]); ctx.stroke();
-    }
-  }
-  function drawCorridor(){
-    var outer=ringPts(R+RHO), inner=ringPts(R-RHO), i, q;
-    ctx.beginPath();
-    for(i=0;i<outer.length;i++){ q=project(outer[i]); i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y); }
-    for(i=inner.length-1;i>=0;i--){ q=project(inner[i]); ctx.lineTo(q.x,q.y); }
-    ctx.closePath();
-    ctx.fillStyle='rgba(62,109,181,0.15)'; ctx.fill();
-    ctx.strokeStyle='rgba(62,109,181,0.5)'; ctx.lineWidth=1; ctx.stroke();
-    ctx.beginPath();
-    var cl=ringPts(R);
-    for(i=0;i<cl.length;i++){ q=project(cl[i]); i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y); }
-    ctx.setLineDash([5,6]); ctx.strokeStyle='rgba(150,165,195,0.45)'; ctx.lineWidth=1.2; ctx.stroke();
-    ctx.setLineDash([]);
-  }
-  function drawPath(geo){
-    var pts=geo.pts;
-    for(var i=0;i<pts.length-1;i++){
-      var a=pts[i], b=pts[i+1], out = !a.inside || !b.inside;
-      var qa=project(a.p), qb=project(b.p);
-      ctx.beginPath(); ctx.moveTo(qa.x,qa.y); ctx.lineTo(qb.x,qb.y);
-      ctx.strokeStyle = out ? COL['--breach'] : COL['--flown'];
-      ctx.lineWidth = out ? 4.2 : 3.4; ctx.lineCap='round'; ctx.stroke();
-    }
-  }
-  function gateShape(thg){
-    var c=[R*Math.cos(thg),R*Math.sin(thg),0], rr=radial(thg), hw=GW/2, top=GH/2, bot=-GH/2;
-    function corner(sx,zz){ return [c[0]+sx*hw*rr[0], c[1]+sx*hw*rr[1], zz]; }
-    return { c:c,
-      frame:[corner(-1,bot),corner(-1,top),corner(1,top),corner(1,bot)],
-      legL:[corner(-1,bot),[c[0]-hw*rr[0],c[1]-hw*rr[1],GROUND]],
-      legR:[corner(1,bot),[c[0]+hw*rr[0],c[1]+hw*rr[1],GROUND]] };
-  }
-  function drawGate(g){
-    var f=g.frame, i, q;
-    ctx.strokeStyle='#59617a'; ctx.lineWidth=3.4; ctx.lineJoin='round';
-    ctx.beginPath();
-    for(i=0;i<f.length;i++){ q=project(f[i]); i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y); }
-    ctx.closePath(); ctx.stroke();
-    ctx.strokeStyle='rgba(89,97,122,0.5)'; ctx.lineWidth=2;
-    [g.legL,g.legR].forEach(function(L){ ctx.beginPath(); moveTo(L[0]); lineTo(L[1]); ctx.stroke(); });
-  }
-  function drawDrone(pos){
-    var a=0.28, qc=project(pos);
-    [[a,a],[a,-a],[-a,a],[-a,-a]].forEach(function(o){
-      var q=project([pos[0]+o[0],pos[1]+o[1],pos[2]]);
-      ctx.beginPath(); ctx.moveTo(qc.x,qc.y); ctx.lineTo(q.x,q.y);
-      ctx.strokeStyle='#cdd5e6'; ctx.lineWidth=2; ctx.stroke();
-      ctx.beginPath(); ctx.arc(q.x,q.y,Math.max(2.4,4*q.s/170),0,TWO);
-      ctx.fillStyle='#eef2fb'; ctx.fill();
-    });
-    ctx.beginPath(); ctx.arc(qc.x,qc.y,Math.max(3,5*qc.s/170),0,TWO);
-    ctx.fillStyle=COL['--maize']; ctx.fill();
-  }
-
-  var playing=true, tt=0, speed=1, SPEEDS=[0.5,1,2], si=1, last=0;
-
-  function draw(){
-    ctx.clearRect(0,0,W,H);
-    var ex=EX[cur], geo=GEO[cur];
-    drawGround(); drawCorridor(); drawPath(geo);
-
-    var thNow = (tt*0.45) % TWO;
-    var dpos = flown(ex, thNow);
-    var objs=[];
-    geo.gates.forEach(function(thg){ var g=gateShape(thg); objs.push({depth:project(g.c).depth, kind:'gate', g:g}); });
-    if(ex.payload){
-      var phi=ex.swing*Math.sin(1.7*tt + 0.6), rr=radial(thNow);
-      var ppos=[ dpos[0]+CABLE*Math.sin(phi)*rr[0], dpos[1]+CABLE*Math.sin(phi)*rr[1], dpos[2]-CABLE*Math.cos(phi) ];
-      objs.push({depth:project(ppos).depth, kind:'payload', pos:ppos, from:dpos});
-    }
-    objs.push({depth:project(dpos).depth, kind:'drone', pos:dpos});
-    objs.sort(function(a,b){ return b.depth - a.depth; });
-    objs.forEach(function(o){
-      if(o.kind==='gate') drawGate(o.g);
-      else if(o.kind==='payload'){
-        ctx.beginPath(); moveTo(o.from); lineTo(o.pos);
-        ctx.strokeStyle='rgba(45,212,191,0.7)'; ctx.lineWidth=1.6; ctx.stroke();
-        var q=project(o.pos);
-        ctx.beginPath(); ctx.arc(q.x,q.y,Math.max(4,7*q.s/170),0,TWO);
-        ctx.fillStyle=COL['--teal']; ctx.fill();
-      } else drawDrone(o.pos);
-    });
-  }
-
-  function frame(ts){
-    if(!last) last=ts;
-    var dt=Math.min(0.05,(ts-last)/1000); last=ts;
-    if(playing) tt += dt*speed;
-    if(autoRot) az += dt*0.18;
-    document.getElementById('scrubFill').style.width = ((((tt*0.45)%TWO)/TWO)*100).toFixed(1)+'%';
-    draw();
-    requestAnimationFrame(frame);
-  }
-
-  function setVd(id, o){
-    var el=document.getElementById(id), col=css(o.c);
-    el.querySelector('b').textContent=o.t;
-    el.style.color=col; el.style.borderColor=col;
-    el.querySelector('.dot').style.background=col;
-  }
-  function setEx(i){
-    cur=i; var ex=EX[i];
-    document.getElementById('sceneName').textContent=ex.name;
-    document.getElementById('sceneSub').textContent=ex.sub;
-    setVd('vCheck', ex.check); setVd('vOut', ex.out);
-    var rd=document.getElementById('read');
-    rd.innerHTML=ex.read; rd.style.borderColor=css(ex.out.c);
-    Array.prototype.forEach.call(document.querySelectorAll('.tab'),function(b){
-      b.setAttribute('aria-selected', (+b.dataset.i===i)?'true':'false'); });
-  }
-
-  document.getElementById('tabs').addEventListener('click',function(e){
-    var b=e.target.closest('.tab'); if(b) setEx(+b.dataset.i); });
-
-  document.getElementById('cards').addEventListener('click',function(e){
-    var b=e.target.closest('.card'); if(!b) return;
-    setEx(+b.dataset.i); setPlay(true);
-    document.getElementById('sim').scrollIntoView({behavior:'smooth', block:'start'});
-  });
-
-  var play=document.getElementById('play'), icon=document.getElementById('playIcon');
-  function setPlay(p){ playing=p;
-    icon.innerHTML = p ? '<path d="M6 5h4v14H6zM14 5h4v14h-4z"/>' : '<path d="M8 5v14l11-7z"/>'; }
-  play.addEventListener('click',function(){ setPlay(!playing); });
-  var spd=document.getElementById('spd');
-  spd.addEventListener('click',function(){ si=(si+1)%SPEEDS.length; speed=SPEEDS[si];
-    spd.innerHTML='speed <b>'+speed+'&times;</b>'; });
-
-  var dragging=false, px=0;
-  cv.addEventListener('pointerdown',function(e){ dragging=true; autoRot=false; px=e.clientX;
-    try{cv.setPointerCapture(e.pointerId);}catch(_){}
-    document.getElementById('hint').style.opacity=0; });
-  cv.addEventListener('pointermove',function(e){ if(dragging){ az -= (e.clientX-px)*0.008; px=e.clientX; } });
-  cv.addEventListener('pointerup',function(){ dragging=false; });
-  cv.addEventListener('pointercancel',function(){ dragging=false; });
-  cv.addEventListener('wheel',function(e){ e.preventDefault();
-    D = Math.max(7.5, Math.min(19, D + e.deltaY*0.006)); resize(); },{passive:false});
-
-  var scrub=document.getElementById('scrub');
-  scrub.addEventListener('pointerdown',function(e){
-    var r=scrub.getBoundingClientRect(), f=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));
-    tt = f*TWO/0.45; });
-
-  window.addEventListener('resize',resize);
-  resize(); setEx(0); setPlay(true); requestAnimationFrame(frame);
-})();
-</script>
 </body>
 </html>
