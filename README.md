@@ -1,11 +1,7 @@
 # sure-2026
 
 Companion website for the SURE 2026 poster **Safe Drone Racing With an Unknown
-Payload** (Brandon McDonald, Kaleb Ben Naveed, Dimitra Panagou). Attendees scan
-the QR on the poster and get a simple, playful simulator built for a general
-audience: a delivery drone banks through gates and stays inside a safe zone,
-then a mystery load on a string swings it out of the zone, then it learns to
-correct.
+Payload**
 
 **Live URL:** https://brandmcd.github.io/sure-2026/
 
@@ -22,22 +18,10 @@ correct.
 - `assets/qr.*` is the QR to the live URL (SVG for print). `make_qr.py`
   regenerates it. `build_scenes.py` regenerates viewer runs from the research
   repo's `.npz` files.
-
-## Design
-
-Warm light theme, `system-ui`, one blue accent plus reserved green/red status,
-colors from a validated data-viz palette. Inside vs outside the safe zone never
-relies on color alone: it also differs by line weight, an icon-and-label status
+fers by line weight, an icon-and-label status
 pill, and the chart threshold.
 
 ## Deploy
-
-Live on GitHub Pages from `main` at the root. To update:
-
-```bash
-cd ~/DASC/sure-2026
-git add -A && git commit -m "..." && git push
-```
 
 If the scan URL ever changes, edit `URL` in `make_qr.py`, rerun
 `uv run --with segno python make_qr.py`, and drop the new SVG onto the poster.

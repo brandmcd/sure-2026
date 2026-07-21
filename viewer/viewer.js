@@ -365,11 +365,12 @@ for (const g of DATA.track.gates) {
     frame.add(rail);
   }
   const n = v3(g.axis).normalize();
-  let side = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 0, 1), n);
-  if (side.lengthSq() < 1e-6) side = new THREE.Vector3(1, 0, 0);
-  side.normalize();
-  const up = new THREE.Vector3().crossVectors(n, side).normalize();
-  frame.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(side, up, n));
+  let nH = new THREE.Vector3(n.x, n.y, 0);
+  if (nH.lengthSq() < 1e-6) nH = new THREE.Vector3(1, 0, 0);
+  nH.normalize();
+  const up = new THREE.Vector3(0, 0, 1);
+  const side = new THREE.Vector3().crossVectors(up, nH).normalize();
+  frame.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(side, up, nH));
   frame.position.copy(v3(g.c));
   gGates.add(frame);
 }
@@ -1101,18 +1102,18 @@ document.getElementById('subtitle').textContent =
 /* passive study: spell out the scenario (what payload, what model state) and what to
    watch for, so the scene reads without the task doc open. */
 if (M.method === 'wrench_net') {
-  const load = M.load === 'bare' ? 'No payload — the bare quad (band ≈ 0, the commit ceiling).'
-    : M.load === 'rigid' ? 'Rigid payload — a constant downward weight.'
-    : 'Swinging payload — a tethered load whose wrench is a hidden mode.';
+  const load = M.load === 'bare' ? 'No payload, the bare quad (band ≈ 0, the commit ceiling).'
+    : M.load === 'rigid' ? 'Rigid payload, a constant downward weight.'
+    : 'Swinging payload, a tethered load whose wrench is a hidden mode.';
   const state = M.load === 'bare' ? ''
     : M.scope === 'ood' ? ' Model trained OFF this track (frozen).'
     : M.scope === 'online' ? ' Model LEARNS in flight from a rolling buffer of this track.'
     : ' Model PRE-TRAINED on this track.';
   const commit = Math.round(100 * M.commit_rate);
   const watch = commit === 0
-    ? 'Watch: the band is too wide to certify, so the quad never commits and crawls the backup — the path hugs the centerline slowly.'
+    ? 'Watch: the band is too wide to certify, so the quad never commits and crawls the backup, the path hugs the centerline slowly.'
     : commit >= 60
-      ? 'Watch: the gatekeeper commits most ticks — the quad races the racing line, not the backup.'
+      ? 'Watch: the gatekeeper commits most ticks, the quad races the racing line, not the backup.'
       : 'Watch: the quad commits on the straights and falls back to the slow backup through the hard corners.';
   document.getElementById('scenario').textContent = load + state;
   document.getElementById('watch').textContent = watch;

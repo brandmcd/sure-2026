@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light">
 <meta name="theme-color" content="#f5f6f8">
-<meta name="description" content="Companion site for the SURE 2026 poster. A simple, playful simulator: watch a delivery drone bank through gates, then see a mystery load on a string swing it out of its safe zone, and how it learns to correct. Try it on a circle or a chicane course.">
+<meta name="description" content="Companion site for the SURE 2026 poster.">
 <meta property="og:title" content="Safe Drone Racing With an Unknown Payload">
 <meta property="og:description" content="A simple simulator: watch an unknown load swing a delivery drone out of its safe zone, then watch it learn.">
 <title>Safe Drone Racing With an Unknown Payload · SURE 2026</title>
@@ -17,7 +17,7 @@
   --line:#e7e9ee; --border:rgba(17,19,24,.08);
   --blue:#2a78d6; --blue-ink:#1c5cab; --zone:rgba(42,120,214,.13); --zone-line:#8fb4e6;
   --good:#0ca30c; --bad:#d03b3b; --load:#e08a00;
-  --r:18px; --r-2:12px; --r-3:9px;
+  --r:14px; --r-chip:10px;
   --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   color-scheme:light;
 }
@@ -45,14 +45,14 @@ h1{color:var(--ink);font-size:clamp(1.7rem,6vw,2.35rem);line-height:1.1;font-wei
 .courses{display:flex;align-items:center;gap:8px;margin-top:22px}
 .courses .lab{font-size:12px;font-weight:650;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);margin-right:2px}
 .crs{border:1px solid var(--border);background:var(--card);color:var(--ink-2);cursor:pointer;
-  font:600 .86rem var(--sans);padding:7px 15px;border-radius:999px;transition:all .15s}
+  font:600 .86rem var(--sans);padding:7px 15px;border-radius:var(--r-chip);transition:all .15s}
 .crs[aria-pressed="true"]{background:var(--blue);color:#fff;border-color:var(--blue);
   box-shadow:0 3px 9px -3px rgba(42,120,214,.6)}
 
 /* tabs */
-.tabs{display:flex;gap:5px;background:#eceef2;border-radius:var(--r-2);padding:5px;margin:10px 0 0}
+.tabs{display:flex;gap:5px;background:#eceef2;border-radius:var(--r);padding:5px;margin:10px 0 0}
 .tab{flex:1;border:0;background:transparent;color:var(--ink-2);cursor:pointer;
-  font:600 .92rem var(--sans);padding:10px 8px;border-radius:var(--r-3);white-space:nowrap;
+  font:600 .92rem var(--sans);padding:10px 8px;border-radius:var(--r-chip);white-space:nowrap;
   transition:background .16s,color .16s,box-shadow .16s}
 .tab[aria-selected="true"]{background:var(--card);color:var(--ink);
   box-shadow:0 1px 2px rgba(17,19,24,.08),0 0 0 1px var(--border)}
@@ -64,11 +64,11 @@ h1{color:var(--ink);font-size:clamp(1.7rem,6vw,2.35rem);line-height:1.1;font-wei
 canvas.view{display:block;width:100%;height:min(58vh,460px);touch-action:none;cursor:grab}
 canvas.view:active{cursor:grabbing}
 .tag{position:absolute;top:12px;left:12px;background:rgba(255,255,255,.82);
-  border:1px solid var(--border);border-radius:10px;padding:7px 11px;backdrop-filter:blur(8px);
+  border:1px solid var(--border);border-radius:var(--r-chip);padding:7px 11px;backdrop-filter:blur(8px);
   font-size:12.5px;color:var(--ink-2);line-height:1.35;max-width:56%}
 .tag b{color:var(--ink);font-weight:650;display:block;font-size:13px}
 .pill{position:absolute;top:12px;right:12px;display:inline-flex;align-items:center;gap:7px;
-  font-size:12.5px;font-weight:650;padding:7px 11px;border-radius:999px;background:rgba(255,255,255,.82);
+  font-size:12.5px;font-weight:650;padding:7px 11px;border-radius:var(--r-chip);background:rgba(255,255,255,.82);
   border:1px solid var(--border);backdrop-filter:blur(8px);white-space:nowrap}
 .pill .ico{width:15px;height:15px;flex:none}
 .hint{position:absolute;bottom:10px;left:0;right:0;text-align:center;font-size:11px;
@@ -80,8 +80,8 @@ canvas.view:active{cursor:grabbing}
 .play{flex:none;width:42px;height:42px;border:0;border-radius:50%;background:var(--blue);color:#fff;
   cursor:pointer;display:grid;place-items:center;box-shadow:0 3px 10px -3px rgba(42,120,214,.7)}
 .play svg{width:17px;height:17px;fill:currentColor}
-.track{flex:1;height:7px;background:#e3e6ec;border-radius:4px;position:relative;cursor:pointer;min-width:90px}
-.track .fill{position:absolute;inset:0 auto 0 0;background:var(--blue);border-radius:4px;width:0}
+.track{flex:1;height:7px;background:#e3e6ec;border-radius:999px;position:relative;cursor:pointer;min-width:90px}
+.track .fill{position:absolute;inset:0 auto 0 0;background:var(--blue);border-radius:999px;width:0}
 .track .knob{position:absolute;top:50%;width:15px;height:15px;border-radius:50%;background:#fff;
   border:2px solid var(--blue);transform:translate(-50%,-50%);left:0}
 .caption{margin:14px 4px 0;font-size:1rem;line-height:1.55;color:var(--ink-2)}
@@ -98,7 +98,7 @@ canvas.plot{display:block;width:100%;height:118px}
 /* steps */
 .steps{margin-top:26px;display:grid;grid-template-columns:1fr;gap:11px}
 @media(min-width:560px){.steps{grid-template-columns:1fr 1fr 1fr}}
-.step{background:var(--card);border:1px solid var(--border);border-radius:var(--r-2);padding:15px 15px 14px}
+.step{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:15px 15px 14px}
 .step .n{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:13px;
   font-weight:700;color:#fff;background:var(--blue)}
 .step.b .n{background:var(--bad)} .step.g .n{background:var(--good)}
@@ -120,8 +120,8 @@ footer{margin-top:34px;border-top:1px solid var(--line);padding-top:22px;
 .honest b{color:var(--ink-2)}
 .more{margin-top:12px;font-size:.9rem}
 .qr{flex:0 0 auto;text-align:center;background:var(--card);border:1px solid var(--border);
-  border-radius:var(--r-2);padding:13px}
-.qr img{width:118px;height:118px;display:block;border-radius:10px}
+  border-radius:var(--r);padding:13px}
+.qr img{width:118px;height:118px;display:block;border-radius:var(--r-chip)}
 .qr span{display:block;margin-top:8px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
 .sig{width:100%;margin-top:18px;font-size:.85rem;color:var(--ink-3)}
 .sig b{color:var(--ink-2);font-weight:600}
@@ -134,13 +134,13 @@ footer{margin-top:34px;border-top:1px solid var(--line);padding-top:22px;
     <span class="chip"><b>SURE 2026</b> · Michigan Robotics</span>
     <h1>Safe Drone Racing With an Unknown Payload</h1>
     <p class="by"><b>Brandon McDonald</b> · Kaleb Ben Naveed · Dimitra Panagou</p>
-    <p class="lede">A delivery drone has to fly fast and stay inside a <b>safe zone</b> it can prove it will not leave, even when it is carrying something it has never felt before. Press play and watch what a mystery load does.</p>
+    <p class="lede">A delivery drone has to fly fast and stay inside a <b>safe zone</b> it can prove it will not leave, even when it is carrying something it has never felt before.</p>
   </header>
 
   <div class="courses" role="group" aria-label="Course">
     <span class="lab">Course</span>
     <button class="crs" data-track="circle" aria-pressed="true">Circle</button>
-    <button class="crs" data-track="chicane" aria-pressed="false">Chicane</button>
+    <button class="crs" data-track="slalom" aria-pressed="false">Slalom</button>
   </div>
 
   <div class="tabs" role="tablist" aria-label="Examples" id="tabs">
@@ -211,9 +211,10 @@ footer{margin-top:34px;border-top:1px solid var(--line);padding-top:22px;
   // ---------- tracks: a centerline C(a) for a in [0,2pi), height FLY ----------
   var R0=5.0;
   function circleC(a){return [R0*Math.cos(a),R0*Math.sin(a),FLY];}
-  function chicaneC(a){
+  // a stadium loop with a gentle weave on each straight and smooth U-turn ends
+  function slalomC(a){
     var u=(a/TWO)%1; if(u<0)u+=1;
-    var Lx=4.6, Re=2.7, wA=1.35, x, y, lt, th, off;
+    var Lx=5.6, Re=3.1, wA=0.95, x, y, lt, th, off;
     if(u<0.30){                       // bottom straight, weaving
       lt=u/0.30; x=-Lx+2*Lx*lt;
       off=wA*Math.pow(Math.sin(Math.PI*lt),2)*Math.sin(3*Math.PI*lt); y=-Re+off;
@@ -229,7 +230,7 @@ footer{margin-top:34px;border-top:1px solid var(--line);padding-top:22px;
   }
   var TRACKS={
     circle:{C:circleC, zoom:1.0, gates:[0,1,2,3,4].map(function(k){return 0.45+k*TWO/5;})},
-    chicane:{C:chicaneC, zoom:0.72, gates:[0.06,0.15,0.24,0.56,0.65,0.74].map(function(u){return u*TWO;})}
+    slalom:{C:slalomC, zoom:0.6, gates:[0.06,0.15,0.24,0.56,0.65,0.74].map(function(u){return u*TWO;})}
   };
   var trackName='circle';
   function TC(a){return TRACKS[trackName].C(a);}
@@ -288,16 +289,29 @@ footer{margin-top:34px;border-top:1px solid var(--line);padding-top:22px;
     sizePlot();
   }
 
-  // attitude from the drone path: body-up along (accel - gravity) so it banks into turns
+  var BANK=0.7;
+  function courseP(a){var c=TC(a);return [c[0],c[1],FLY+0.12*Math.sin(3*a+0.2)];}
+  function clampUp(up,maxDeg){
+    var maxT=maxDeg*Math.PI/180, hz=Math.hypot(up[0],up[1]), ang=Math.atan2(hz,up[2]);
+    if(ang<=maxT) return up;
+    var hx=hz>1e-9?up[0]/hz:1, hy=hz>1e-9?up[1]/hz:0, s=Math.sin(maxT), c=Math.cos(maxT);
+    return [hx*s,hy*s,c];
+  }
+  // Bank from the smooth course (acceleration averaged over a small window) and cap
+  // the lean, so tight turns read as a natural bank instead of flipping the drone.
   function attitude(ex,a){
-    var h=0.03;
-    var pm=pos(ex,a-h), p0=pos(ex,a), pp=pos(ex,a+h);
-    var acc=[(pp[0]-2*p0[0]+pm[0])/(h*h),(pp[1]-2*p0[1]+pm[1])/(h*h),(pp[2]-2*p0[2]+pm[2])/(h*h)];
-    var vel=[(pp[0]-pm[0])/(2*h),(pp[1]-pm[1])/(2*h),(pp[2]-pm[2])/(2*h)];
-    var up=norm([acc[0]*ex.tilt, acc[1]*ex.tilt, acc[2]+9.8]);
-    var fwd=norm(sub(vel, mul(up, vel[0]*up[0]+vel[1]*up[1]+vel[2]*up[2])));
+    var acc=[0,0,0], vel=[0,0,0], h=0.03, nS=0;
+    for(var s=-2;s<=2;s++){
+      var b=a+s*0.02, pm=courseP(b-h), p0=courseP(b), pp=courseP(b+h);
+      acc[0]+=(pp[0]-2*p0[0]+pm[0])/(h*h); acc[1]+=(pp[1]-2*p0[1]+pm[1])/(h*h); acc[2]+=(pp[2]-2*p0[2]+pm[2])/(h*h);
+      vel[0]+=(pp[0]-pm[0])/(2*h); vel[1]+=(pp[1]-pm[1])/(2*h); vel[2]+=(pp[2]-pm[2])/(2*h); nS++;
+    }
+    acc=mul(acc,1/nS); vel=mul(vel,1/nS);
+    var up=clampUp(norm([acc[0]*BANK, acc[1]*BANK, acc[2]+9.8]),32);
+    var fwd=sub(vel, mul(up, vel[0]*up[0]+vel[1]*up[1]+vel[2]*up[2]));
+    fwd=(Math.hypot(fwd[0],fwd[1],fwd[2])<1e-6)?norm(vel):norm(fwd);
     var right=norm(cross(fwd,up));
-    return {p:p0, up:up, fwd:fwd, right:right};
+    return {p:pos(ex,a), up:up, fwd:fwd, right:right};
   }
 
   function edge(sign){var a=[];for(var i=0;i<=140;i++){var u=i/140*TWO,c=TC(u),n=nrm(u);
