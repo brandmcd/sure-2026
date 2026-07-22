@@ -124,24 +124,20 @@ canvas.gkview{display:block;width:100%;height:min(46vh,300px);margin-top:10px}
 .legend i.z{background:var(--zone);border:1px solid var(--zone-line);height:11px;border-radius:3px}
 
 /* footer */
-footer{margin-top:34px;border-top:1px solid var(--line);padding-top:22px;
-  display:flex;gap:20px;flex-wrap:wrap;justify-content:space-between;align-items:flex-start}
-.foot{flex:1 1 340px;min-width:250px}
+footer{margin-top:34px;border-top:1px solid var(--line);padding-top:22px}
 .honest{font-size:.9rem;line-height:1.6;color:var(--ink-3)}
 .honest b{color:var(--ink-2)}
 .more{margin-top:12px;font-size:.9rem}
-.sig{width:100%;margin-top:18px;font-size:.85rem;color:var(--ink-3)}
-.sig b{color:var(--ink-2);font-weight:600}
 </style>
 </head>
 <body>
 <div class="wrap">
 
   <header>
-    <span class="chip"><b>SURE 2026</b> · Michigan Robotics</span>
+    <span class="chip"><b>SURE 2026</b></span>
     <h1>Safe Drone Racing With an Unknown Payload</h1>
     <p class="by"><b>Brandon McDonald</b> · Kaleb Ben Naveed · Dimitra Panagou</p>
-    <p class="lede">A delivery drone has to fly fast and stay inside a <b>safe zone</b> it can prove it will not leave, even when it is carrying something it has never felt before. Every run below is <b>real</b>, recorded from the simulator.</p>
+    <p class="lede">A delivery drone has to fly fast and stay inside a <b>safe zone</b> it can prove it will not leave, even when it is carrying something it has never felt before. Every run below is recorded from the simulator.</p>
   </header>
 
   <div class="courses" role="group" aria-label="Course">
@@ -202,11 +198,8 @@ footer{margin-top:34px;border-top:1px solid var(--line);padding-top:22px;
   </div>
 
   <footer>
-    <div class="foot">
-      <p class="honest"><b>These are real recorded runs</b> from the gatekeeper simulator: a bare drone that holds the safe zone, and the same drone carrying an unknown swinging load the safety check is blind to, so it leaves the zone. Everything is in simulation; the safe zone is the region the check keeps the drone inside, and the loads are deliberately heavy. Teaching the check to feel the load, so it stays both safe and fast, is the next step. Zipline and Wing already lower packages on a cable like this.</p>
-      <p class="more">Curious how the full research viewer looks? <a href="sim/grandprix-slung-learned.html?play=1">See a full run &rarr;</a></p>
-    </div>
-    <p class="sig"><b>Brandon McDonald</b> · Kaleb Ben Naveed · Dimitra Panagou &nbsp;·&nbsp; University of Michigan, College of Engineering · SURE 2026</p>
+    <p class="honest"><b>These are recorded runs from the simulator</b>: a bare drone that holds the safe zone, and the same drone carrying an unknown swinging load the safety check is blind to, so it leaves the zone. Everything is in simulation; the safe zone is the region the check keeps the drone inside, and the loads are deliberately heavy. Teaching the check to feel the load, so it stays both safe and fast, is the next step.</p>
+    <p class="more">Curious how the full research viewer looks? <a href="sim/grandprix-slung-learned.html?play=1">See a full run (best viewed on desktop)&rarr;</a></p>
   </footer>
 
 </div>

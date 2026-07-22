@@ -1092,31 +1092,22 @@ addEventListener('resize', () => {
 /* ---------- chrome wiring ---------- */
 
 document.getElementById('title').textContent = `${M.track} · ${M.plant}`;
-const SCOPE_LABEL = { ood: 'frozen', pre: 'pre-trained', online: 'online (learning in flight)' };
-const modelTag = (M.method === 'wrench_net' ? 'learning on the fly' : (M.method || 'residual'))
-  + (M.scope ? ` · ${SCOPE_LABEL[M.scope] || M.scope}` : '');
+const SCOPE_LABEL = { ood: 'trained on other tracks', pre: 'trained on this track', online: 'learning in flight' };
+const modelTag = (M.method === 'wrench_net' ? 'learned load model' : (M.method || 'residual'))
+  + (M.scope ? `, ${SCOPE_LABEL[M.scope] || M.scope}` : '');
 document.getElementById('subtitle').textContent =
-  `${modelTag} · commit ${(100 * M.commit_rate).toFixed(0)}% · ` +
+  `${modelTag} · commits ${(100 * M.commit_rate).toFixed(0)}% of ticks · ` +
   `${M.n_gates} gates · corridor ±${CHW} m`;
 
-/* passive study: spell out the scenario (what payload, what model state) and what to
-   watch for, so the scene reads without the task doc open. */
 if (M.method === 'wrench_net') {
-  const load = M.load === 'bare' ? 'No payload, the bare quad (band ≈ 0, the commit ceiling).'
-    : M.load === 'rigid' ? 'Rigid payload, a constant downward weight.'
-    : 'Swinging payload, a tethered load whose wrench is a hidden mode.';
+  const load = M.load === 'bare' ? 'No payload, so there is nothing for the model to learn.'
+    : M.load === 'rigid' ? 'The payload is bolted on, a steady pull downward.'
+    : 'The payload hangs on a tether and swings as the drone turns.';
   const state = M.load === 'bare' ? ''
-    : M.scope === 'ood' ? ' Model trained OFF this track (frozen).'
-    : M.scope === 'online' ? ' Model LEARNS in flight from a rolling buffer of this track.'
-    : ' Model PRE-TRAINED on this track.';
-  const commit = Math.round(100 * M.commit_rate);
-  const watch = commit === 0
-    ? 'Watch: the band is too wide to certify, so the quad never commits and crawls the backup, the path hugs the centerline slowly.'
-    : commit >= 60
-      ? 'Watch: the gatekeeper commits most ticks, the quad races the racing line, not the backup.'
-      : 'Watch: the quad commits on the straights and falls back to the slow backup through the hard corners.';
+    : M.scope === 'ood' ? ' The model learned this load elsewhere and is not updating here.'
+    : M.scope === 'online' ? ' The model is still learning this load in flight.'
+    : ' The model has already learned this load here.';
   document.getElementById('scenario').textContent = load + state;
-  document.getElementById('watch').textContent = watch;
 }
 
 /* payload badge: flips from the learned (in-distribution) load to the stepped
