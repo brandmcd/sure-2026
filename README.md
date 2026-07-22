@@ -20,20 +20,41 @@ Payload**.
 - `data/scenes.json` is the trajectory data (~40 KB), extracted by
   `build_real_scenes.py` from the research repo's run `.npz` files. Rebuild it
   from `~/DASC/neural-dual-gtk` with that repo's venv.
+- The gatekeeper-on / gatekeeper-off panel replays a matched pair of real
+  chicane runs on a shared clock, side by side: the same empty drone told to lap
+  faster than the bends allow (the chicane speed cap raised from 5 to 8, past
+  the pace the check was tuned for), once with the gatekeeper and once without
+  it. The first second is clipped from both replays: before its first certified
+  commit the gatekeeper drone just sits at the start line, which read as a
+  stumble. The drone's drawn heading holds steady below walking pace so a
+  near-stationary drone cannot spin in place. Without the
+  check it swings wide at the bends and misses gates; with the check it trims the
+  plan four times a second and stays inside while still racing. It reads
+  `data/compare.json`, built by `build_compare.py` from
+  `results/exp005/track_chicane_6_vth8_rt_{gk,raw}.npz` in the research repo
+  (recorded with `examples/run_gatekeeper_racing.py --track track_chicane_6
+  --duration 8`, with and without `--no-gatekeeper`, on a copy of the exp005
+  config with the chicane `v_theta_max` set to 8 and the gatekeeper on the
+  real-time operating point: `T_B` 2 s, `ts_grid` 0.4 to 1.0 s, replanning at
+  4.17 Hz, one backup iteration). Like the other panels it hides itself if its
+  data file is missing.
 - The panel lower on the page plays the gatekeeper's decision as a series of
-  rehearsals: the drone flies each one, races a little longer than the last, then
+  rehearsals, with a four-step strip above it (plan, rehearse, check, commit or
+  shorten) that lights up as the search runs, so the shorten-and-recheck loop is
+  visible: the drone flies each one, races a little longer than the last, then
   bails out onto the middle of the course. It is a separate, self-contained
   module reading `data/gatekeeper.json`, built by `build_gatekeeper.py` from the
-  same chicane run. Each planning tick logs every switch time the gatekeeper
+  same too-fast run the on/off panel replays, framed over the whole course so
+  the two panels visually match; faint red crosses mark where the unchecked twin
+  run left the corridor, and the two chosen ticks are full
+  shorten-until-it-fits searches at exactly those bends. Each planning tick logs
+  every switch time the gatekeeper
   tried, whether it passed, and its rollout, so what plays is the real search.
   The trail is coloured as it flies, turning red exactly where the rollout
   crosses the corridor edge, measured the way the safety check measures it.
   Rollouts are trimmed where they stop saying anything new: a rejected one
   shortly past its breach, an accepted one once it has settled onto the
-  centerline. Only ticks whose every verdict is visible top-down are used: on
-  some ticks a rehearsal is rejected because a perturbed member of its ensemble
-  leaves the corridor while the drawn rollout does not, and playing that would
-  show a red verdict with nothing on screen to justify it. The panel hides itself
+  centerline. The panel hides itself
   if the data file is missing, so it cannot affect the rest of the page.
 - `sim/grandprix-slung-learned.html` is one full run from the research three.js
   viewer, linked from the footer; it shares `viewer/`.

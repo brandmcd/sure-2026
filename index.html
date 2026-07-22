@@ -92,7 +92,6 @@ canvas.view:active{cursor:grabbing}
   padding:15px 16px 12px;box-shadow:0 8px 30px -18px rgba(20,30,60,.25)}
 .chart .h{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:2px}
 .chart .h .t{font-size:.98rem;font-weight:650;color:var(--ink)}
-.chart .h .s{font-size:12px;color:var(--ink-3)}
 canvas.plot{display:block;width:100%;height:118px}
 
 /* switch-time search */
@@ -100,11 +99,30 @@ canvas.plot{display:block;width:100%;height:118px}
   padding:15px 16px 14px;box-shadow:0 8px 30px -18px rgba(20,30,60,.25)}
 .gk .h{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .gk .h .t{font-size:.98rem;font-weight:650;color:var(--ink)}
-.gk .h .s{font-size:12px;color:var(--ink-3)}
 .gkintro{margin:8px 0 0;font-size:.92rem;line-height:1.55;color:var(--ink-2);max-width:62ch}
 canvas.gkview{display:block;width:100%;height:min(46vh,300px);margin-top:10px}
+@media(max-width:559px){#cmpView{height:min(62vh,430px)}}
 .gkline{margin:8px 2px 0;min-height:1.5em;font-size:.95rem;font-weight:600;color:var(--ink)}
 .gk .legend{margin-top:10px}
+.replay{border:1px solid var(--border);background:var(--card);color:var(--ink-2);cursor:pointer;
+  font:600 11.5px var(--sans);padding:5px 11px;border-radius:999px;white-space:nowrap;
+  transition:border-color .15s,color .15s}
+.replay:hover{border-color:var(--blue);color:var(--blue-ink)}
+.gksteps{list-style:none;display:grid;grid-template-columns:1fr 2.15fr 1fr;gap:6px;margin:12px 0 0;padding:0}
+.gkloop{position:relative;display:grid;grid-template-columns:1fr 1fr;gap:6px;
+  padding:5px 5px 17px;border:1.5px dashed #c6cdd8;border-radius:12px}
+.looplab{position:absolute;left:50%;bottom:3px;transform:translateX(-50%);font-size:10px;
+  font-weight:650;color:var(--ink-3);white-space:nowrap}
+@media(max-width:639px){.gksteps{grid-template-columns:1fr}}
+.gkstep{display:flex;align-items:flex-start;gap:7px;padding:8px 9px;border:1px solid var(--line);
+  border-radius:10px;background:var(--raise);font-size:11.5px;line-height:1.35;color:var(--ink-3);
+  transition:border-color .5s,background .5s,color .5s}
+.gkstep .n{flex:none;width:18px;height:18px;border-radius:50%;display:grid;place-items:center;
+  font-size:11px;font-weight:700;background:#e3e6ec;color:var(--ink-2);transition:background .5s}
+.gkstep.on{border-color:var(--blue);background:var(--card);color:var(--ink-2)}
+.gkstep.on .n{background:var(--blue);color:#fff}
+.gkstep.ok{border-color:var(--good)} .gkstep.ok .n{background:var(--good)}
+.gkstep.no{border-color:var(--bad)} .gkstep.no .n{background:var(--bad)}
 
 /* steps */
 .steps{margin-top:26px;display:grid;grid-template-columns:1fr;gap:11px}
@@ -137,7 +155,7 @@ footer{margin-top:34px;border-top:1px solid var(--line);padding-top:22px}
     <span class="chip"><b>SURE 2026</b></span>
     <h1>Safe Drone Racing With an Unknown Payload</h1>
     <p class="by"><b>Brandon McDonald</b> · Kaleb Ben Naveed · Dimitra Panagou</p>
-    <p class="lede">A delivery drone has to fly fast and stay inside a <b>safe zone</b> it can prove it will not leave, even when it is carrying something it has never felt before. Every run below is recorded from the simulator.</p>
+    <p class="lede">A delivery drone has to fly fast while staying inside a <b>safe zone</b> it can prove it will not leave, even when carrying something it has never felt before. Every run below is recorded from the simulator.</p>
   </header>
 
   <div class="courses" role="group" aria-label="Course">
@@ -174,13 +192,34 @@ footer{margin-top:34px;border-top:1px solid var(--line);padding-top:22px}
   </div>
 
   <div class="chart">
-    <div class="h"><span class="t">How far the drone is from the middle of its safe zone</span><span class="s">dashed line = edge of the zone</span></div>
+    <div class="h"><span class="t">How far the drone is from the middle of its safe zone</span></div>
     <canvas class="plot" id="plot"></canvas>
   </div>
 
+  <section class="gk" id="cmpCard" hidden>
+    <div class="h"><span class="t">Now turn the gatekeeper off</span><button class="replay" id="cmpReplay" aria-label="Restart this replay">&#8634; replay</button></div>
+    <p class="gkintro">The safety check (<b>the gatekeeper</b>) is a system that ensures the drone stays within a safe zone. Here the empty drone is told to lap the chicane faster than its bends really allow, and the run is recorded twice: once with the gatekeeper, once without it. <b>That switch is the only difference between the two runs.</b></p>
+    <canvas class="gkview" id="cmpView"></canvas>
+    <p class="gkline" id="cmpLine">&nbsp;</p>
+    <div class="legend">
+      <span><i class="z"></i>safe zone</span>
+      <span><i style="background:var(--good)"></i>inside the zone</span>
+      <span><i style="background:var(--bad)"></i>outside the zone</span>
+    </div>
+  </section>
+
   <section class="gk" id="gkCard" hidden>
-    <div class="h"><span class="t">How the drone decides it is safe to go fast</span><span class="s">a real decision, from one chicane run</span></div>
-    <p class="gkintro">The drone only races if it already knows how it would get out: stop racing, ease onto the middle of the course, and crawl. <b>So how much longer can it keep racing and still get out?</b> The bend ahead decides it. Reach the bend still going fast and the way out swings wide, outside the safe zone.</p>
+    <div class="h"><span class="t">How the gatekeeper decides it is safe to go fast</span><button class="replay" id="gkReplay" aria-label="Restart this replay">&#8634; replay</button></div>
+    <p class="gkintro">The drone never outruns its escape plan. Before each stretch of racing, the gatekeeper rehearses the whole way out: brake, drift back to the middle, crawl. <b>If the rehearsal leaves the safe zone, that stretch is too long and gets trimmed.</b> The faint red crosses mark where the unchecked drone flew out.</p>
+    <ol class="gksteps" id="gkSteps">
+      <li class="gkstep"><span class="n">1</span><span>Plan the fastest next stretch</span></li>
+      <li class="gkloop">
+        <div class="gkstep"><span class="n">2</span><span>Rehearse racing it, then bailing out</span></div>
+        <div class="gkstep"><span class="n">3</span><span>Check it never leaves the zone</span></div>
+        <span class="looplab">&#8634; fails: shorten the racing, repeat</span>
+      </li>
+      <li class="gkstep"><span class="n">4</span><span>Fly the longest stretch that passed</span></li>
+    </ol>
     <canvas class="gkview" id="gkView"></canvas>
     <p class="gkline" id="gkLine">&nbsp;</p>
     <div class="legend">
@@ -198,7 +237,7 @@ footer{margin-top:34px;border-top:1px solid var(--line);padding-top:22px}
   </div>
 
   <footer>
-    <p class="honest"><b>These are recorded runs from the simulator</b>: a bare drone that holds the safe zone, and the same drone carrying an unknown swinging load the safety check is blind to, so it leaves the zone. Everything is in simulation; the safe zone is the region the check keeps the drone inside, and the loads are deliberately heavy. Teaching the check to feel the load, so it stays both safe and fast, is the next step.</p>
+    <p class="honest"><b>Every run here is recorded from the simulator</b>: a bare drone that holds its safe zone, the same drone dragged out by an unknown swinging load its safety check cannot feel, and one too-fast lap flown twice, with the gatekeeper on and off. The loads are deliberately heavy. Teaching the check to feel the load, so it stays both safe and fast, is the next step.</p>
     <p class="more">Curious how the full research viewer looks? <a href="sim/grandprix-slung-learned.html?play=1">See a full run (best viewed on desktop)&rarr;</a></p>
   </footer>
 
@@ -506,21 +545,31 @@ footer{margin-top:34px;border-top:1px solid var(--line);padding-top:22px}
   var W=0,H=0,DPR=1,TWO=Math.PI*2, D=null, view=null, want=null;
   var css=function(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();};
   var C={blue:css('--blue'),good:css('--good'),bad:css('--bad'),plan:'#aab0bb'};
-  var VERDICT=2.4, ENDHOLD=4.0;   // seconds to read each verdict, and the decision
+  var VERDICT=2.6, ENDHOLD=3.5;   // seconds to read each verdict, and the decision
+  var PLANSEC=2.0, RETRYSEC=1.6;  // seconds to draw the plan, and to read "shorten, try again"
+  var FLYPAD=0.8, FLYCAP=6.5;     // display seconds around the real flight to the next decision
+  var steps=document.querySelectorAll('#gkSteps .gkstep');
+  function setSteps(idx,mood){
+    steps.forEach(function(el,j){
+      el.classList.toggle('on',j===idx);
+      el.classList.toggle('ok',j===idx&&mood==='ok');
+      el.classList.toggle('no',j===idx&&mood==='no');
+    });
+  }
 
   function size(){
     DPR=Math.min(devicePixelRatio||1,2);
     var r=cv.getBoundingClientRect(); W=Math.round(r.width); H=Math.round(r.height);
     cv.width=Math.round(W*DPR); cv.height=Math.round(H*DPR); ctx.setTransform(DPR,0,0,DPR,0,0);
   }
-  function boxOf(tk){
-    var pts=[tk.quad].concat(tk.nom);
-    tk.cands.forEach(function(c){pts=pts.concat(c.path);});
+  // the whole course, framed the same way as the on/off panes above
+  function courseView(){
     var b={x0:1e9,y0:1e9,x1:-1e9,y1:-1e9};
-    pts.forEach(function(p){b.x0=Math.min(b.x0,p[0]);b.x1=Math.max(b.x1,p[0]);
-                            b.y0=Math.min(b.y0,p[1]);b.y1=Math.max(b.y1,p[1]);});
-    var m=1.4; return {cx:(b.x0+b.x1)/2, cy:(b.y0+b.y1)/2,
-                       w:(b.x1-b.x0)+2*m, h:(b.y1-b.y0)+2*m};
+    D.center.forEach(function(p){b.x0=Math.min(b.x0,p[0]);b.x1=Math.max(b.x1,p[0]);
+                                 b.y0=Math.min(b.y0,p[1]);b.y1=Math.max(b.y1,p[1]);});
+    var m=D.hw+0.9;
+    return {cx:(b.x0+b.x1)/2, cy:(b.y0+b.y1)/2,
+            w:(b.x1-b.x0)+2*m, h:(b.y1-b.y0)+2*m};
   }
   function pt(p){var s=Math.min(W/view.w,H/view.h);
     return {x:W/2+(p[0]-view.cx)*s, y:H/2-(p[1]-view.cy)*s, s:s};}
@@ -555,7 +604,7 @@ footer{margin-top:34px;border-top:1px solid var(--line);padding-top:22px}
     });
   }
   function drawQuad(p,alpha,head){
-    var q=pt(p), r=Math.max(4,0.3*q.s), d=r*0.72, a=(head===null||head===undefined)?Math.PI/4:head+Math.PI/4;
+    var q=pt(p), r=Math.max(4,0.22*q.s), d=r*0.72, a=(head===null||head===undefined)?Math.PI/4:head+Math.PI/4;
     ctx.globalAlpha=alpha===undefined?1:alpha;
     ctx.strokeStyle='#3a4152'; ctx.lineWidth=2;
     [0,1,2,3].forEach(function(k){
@@ -612,7 +661,7 @@ footer{margin-top:34px;border-top:1px solid var(--line);padding-top:22px}
     ctx.textAlign='left'; ctx.font='650 10px '+F; ctx.fillStyle='#8b909a';
     ctx.fillText('KEEP RACING FOR', x+11, y+19);
     tk.cands.forEach(function(c,j){
-      var ry=y+30+j*rh+11, decided=j<st.k||(j===st.k&&(st.part==='verdict'||st.part==='done'))||st.part==='done';
+      var ry=y+30+j*rh+11, decided=j<st.k||(j===st.k&&(st.part==='verdict'||st.part==='retry'||st.part==='done'))||st.part==='done';
       var live=j===st.k&&st.part!=='done';
       ctx.font=(live?'700 ':'600 ')+'14px '+F;
       ctx.fillStyle=decided?(c.ok?C.good:C.bad):(live?'#14161a':'#c3c7ce');
@@ -628,70 +677,140 @@ footer{margin-top:34px;border-top:1px solid var(--line);padding-top:22px}
       }
     });
   }
-  function ghost(c,upto){
+  var ghostHead=null;   // held when the rehearsal crawls, so the model cannot spin in place
+  var ghostSpd=null;    // smoothed readout speed
+  function ghost(c,upto,alpha){
+    if(alpha!==undefined&&alpha<=0)return;
     var f=upto*(c.path.length-1), i=Math.min(c.path.length-2,Math.floor(f));
     var a=c.path[i], b=c.path[i+1], g=f-i;
     var p=[a[0]+(b[0]-a[0])*g, a[1]+(b[1]-a[1])*g];
-    drawQuad(p,0.9,Math.atan2(b[1]-a[1],b[0]-a[0]));
+    var dx=b[0]-a[0], dy=b[1]-a[1];
+    if(ghostHead===null||Math.hypot(dx,dy)>0.025) ghostHead=Math.atan2(dy,dx);
+    drawQuad(p,alpha===undefined?0.9:alpha,ghostHead);
+    if(alpha===undefined&&c.sec){
+      var spd=Math.hypot(dx,dy)/(c.sec/(c.path.length-1));
+      ghostSpd=ghostSpd===null?spd:ghostSpd+(spd-ghostSpd)*0.15;
+      var q=pt(p), F=css('--sans').replace(/"/g,''), lab=Math.round(ghostSpd*3.6)+' km/h';
+      ctx.font='650 10.5px '+F; ctx.textAlign='left'; ctx.textBaseline='middle';
+      ctx.lineWidth=3; ctx.strokeStyle='rgba(255,255,255,0.85)';
+      ctx.strokeText(lab,q.x+13,q.y-12);
+      ctx.fillStyle='#565a63'; ctx.fillText(lab,q.x+13,q.y-12);
+    }
   }
 
-  // one rehearsal: race, bail out, then a beat to read the verdict
+  // one tick: draw the plan, then per try: race, bail out, a beat to read the
+  // verdict, and after a rejection a beat for "shorten, try again"
   function raceTime(c){return 0.7+c.wait*1.3;}
   function bailTime(c){return 1.9;}
   function candTime(c){return raceTime(c)+bailTime(c)+VERDICT;}
+  function flyTime(tk){return tk.fs?Math.min(FLYCAP,FLYPAD+tk.fs):0;}
   function tickLength(tk){
-    var s=ENDHOLD; tk.cands.forEach(function(c){s+=candTime(c);}); return s;
+    var s=PLANSEC+ENDHOLD+flyTime(tk);
+    tk.cands.forEach(function(c,j){s+=candTime(c); if(!c.ok&&j<tk.cands.length-1)s+=RETRYSEC;});
+    return s;
+  }
+  function flyPos(tk,upto){
+    var f=upto*(tk.fly.length-1), i=Math.min(tk.fly.length-2,Math.floor(f)), g=f-i;
+    var a=tk.fly[i], b=tk.fly[i+1];
+    return {p:[a[0]+(b[0]-a[0])*g, a[1]+(b[1]-a[1])*g], h:Math.atan2(b[1]-a[1],b[0]-a[0])};
   }
   function stage(tk,u){
+    if(u<PLANSEC) return {k:-1,part:'plan',upto:u/PLANSEC,sec:u};
+    u-=PLANSEC;
     for(var k=0;k<tk.cands.length;k++){
       var c=tk.cands[k], rt=raceTime(c), bt=bailTime(c);
-      if(u<rt) return {k:k,part:'race',upto:(u/rt)*(c.sw/(c.path.length-1))};
+      if(u<rt) return {k:k,part:'race',upto:(u/rt)*(c.sw/(c.path.length-1)),sec:u};
       u-=rt;
-      if(u<bt){var f=u/bt, sw=c.sw/(c.path.length-1); return {k:k,part:'bail',upto:sw+f*(1-sw)};}
+      if(u<bt){var f=u/bt, sw=c.sw/(c.path.length-1); return {k:k,part:'bail',upto:sw+f*(1-sw),sec:u};}
       u-=bt;
-      if(u<VERDICT) return {k:k,part:'verdict',upto:1};
+      if(u<VERDICT) return {k:k,part:'verdict',upto:1,sec:u};
       u-=VERDICT;
+      if(!c.ok&&k<tk.cands.length-1){
+        if(u<RETRYSEC) return {k:k,part:'retry',upto:1,sec:u};
+        u-=RETRYSEC;
+      }
     }
-    return {k:tk.cands.length-1,part:'done',upto:1};
+    if(u<ENDHOLD) return {k:tk.cands.length-1,part:'done',upto:1,sec:u};
+    var ft=flyTime(tk);
+    return {k:tk.cands.length-1,part:'fly',
+            upto:ft?Math.min(1,(u-ENDHOLD)/ft):1,sec:u-ENDHOLD};
   }
 
-  var t0=0, prev=0;
+  var t0=0;
   function loop(ts){
     if(!t0)t0=ts; var now=(ts-t0)/1000, i=0, u=now;
     while(u>tickLength(D.ticks[i])){u-=tickLength(D.ticks[i]); i=(i+1)%D.ticks.length;}
-    var tk=D.ticks[i], st=stage(tk,u), box=boxOf(tk);
-    if(!view){view=box;} else {var f=Math.min(1,(ts-(prev||ts))/1000*2.2);
-      view={cx:view.cx+(box.cx-view.cx)*f, cy:view.cy+(box.cy-view.cy)*f,
-            w:view.w+(box.w-view.w)*f, h:view.h+(box.h-view.h)*f};}
-    prev=ts;
+    var tk=D.ticks[i], st=stage(tk,u);
     ctx.clearRect(0,0,W,H);
     var g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,'#f2f6fc'); g.addColorStop(1,'#fdfefe');
     ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
     drawZone(); drawGates();
-    ctx.setLineDash([6,6]); poly(tk.nom); ctx.strokeStyle=C.plan; ctx.lineWidth=2; ctx.stroke();
-    ctx.setLineDash([]);
+    if(D.offx){
+      ctx.globalAlpha=0.4; ctx.lineWidth=2; ctx.strokeStyle=C.bad; ctx.lineCap='round';
+      D.offx.forEach(function(p){var q=pt(p);
+        ctx.beginPath(); ctx.moveTo(q.x-4,q.y-4); ctx.lineTo(q.x+4,q.y+4);
+        ctx.moveTo(q.x+4,q.y-4); ctx.lineTo(q.x-4,q.y+4); ctx.stroke();});
+      ctx.globalAlpha=1;
+    }
+    var fly=st.part==='fly'&&tk.fly;
+    var df=fly?Math.max(0,1-st.sec/0.8):1;   // the decision fades out as the flight starts
+    if(df>0.01){
+      ctx.globalAlpha=df;
+      var nomN=st.part==='plan'?Math.max(2,Math.ceil(st.upto*tk.nom.length)):undefined;
+      ctx.setLineDash([6,6]); poly(tk.nom,nomN);
+      ctx.strokeStyle=C.plan; ctx.lineWidth=2; ctx.stroke();
+      ctx.setLineDash([]);
+      if(nomN){var tip=pt(tk.nom[Math.min(nomN-1,tk.nom.length-1)]);
+        ctx.beginPath();ctx.arc(tip.x,tip.y,3.5,0,TWO);ctx.fillStyle=C.blue;ctx.fill();}
+      ctx.globalAlpha=1;
+    }
     var chosen=-1; tk.cands.forEach(function(c,j){if(chosen<0&&c.ok)chosen=j;});
-    tk.cands.forEach(function(c,j){ if(j<st.k) trail(c,1,0.28,false); });
+    tk.cands.forEach(function(c,j){
+      if(st.k<0||j>=st.k)return;
+      var al=((j===st.k-1&&st.part==='race')?0.28+0.57*Math.max(0,1-st.sec/0.7):0.28)*df;
+      if(al>0.01) trail(c,1,al,false);
+    });
     var c=tk.cands[st.k];
-    if(st.part==='done'){
+    if(fly){
+      if(chosen>=0&&df>0.01) trail(tk.cands[chosen],1,df,true);
+      var fn=Math.max(2,Math.ceil(st.upto*tk.fly.length));
+      ctx.lineCap='round'; ctx.strokeStyle=C.blue; ctx.lineWidth=4;
+      poly(tk.fly,fn); ctx.stroke();
+    } else if(st.part==='done'){
       if(chosen>=0) trail(tk.cands[chosen],1,1,true); else trail(c,1,0.5,false);
-    } else {
+    } else if(st.part==='retry'){
+      trail(c,1,0.85,false);
+      ghost(c,1,Math.max(0,0.9*(1-st.sec/0.5)));
+    } else if(st.part!=='plan'){
       trail(c,st.upto,1,false);
       ghost(c,st.upto);
     }
-    drawQuad(tk.quad,1,null);
-    board(tk,st);
+    if(fly){
+      var fp=flyPos(tk,st.upto);
+      var fa=tk.jump?Math.min(1,(1-st.upto)/0.15):1;   // fade before a seam the run cannot close
+      if(fa>0.02) drawQuad(fp.p,fa,fp.h);
+    }
+    else drawQuad(tk.quad,1,null);
+    var ba=st.part==='plan'?Math.min(1,st.sec/0.6):df;
+    if(ba>0.01){ctx.globalAlpha=ba; board(tk,st); ctx.globalAlpha=1;}
     var txt, col='var(--ink)';
-    if(st.part==='race'||st.part==='bail')
-      txt='What if it races '+c.wait.toFixed(1)+' s longer, then bails out?';
-    else if(st.part==='verdict'){
-      txt=c.ok?'It gets out without leaving the safe zone.'
-              :'Still fast at the bend, so the way out swings wide.';
-      col=c.ok?C.good:C.bad;
+    if(st.part==='plan'){
+      txt='It plans the fastest next stretch it would like to fly.'; setSteps(0);
+    } else if(st.part==='race'||st.part==='bail'){
+      txt='What if it races '+c.wait.toFixed(1)+' s longer, then bails out?'; setSteps(1);
+    } else if(st.part==='verdict'){
+      txt=c.ok?'It stays inside the safe zone the whole way out. Certified.'
+              :'Still too fast: the way out crosses the safe zone wall. Rejected.';
+      col=c.ok?C.good:C.bad; setSteps(2,c.ok?'ok':'no');
+    } else if(st.part==='retry'){
+      txt='Too long. Shorten the racing and rehearse again.'; col=C.bad; setSteps(2,'no');
+    } else if(st.part==='fly'){
+      txt='So it flies the stretch that passed, and asks again at the next bend.';
+      col=C.blue; setSteps(3,'ok');
     } else {
       txt=chosen>=0?'So it races '+tk.cands[chosen].wait.toFixed(1)+' s, and no further.'
                    :'None of them work, so it does not speed up.';
-      col=chosen>=0?C.blue:C.bad;
+      col=chosen>=0?C.blue:C.bad; setSteps(3,chosen>=0?'ok':'no');
     }
     if(line.textContent!==txt) line.textContent=txt;
     line.style.color=col;
@@ -699,9 +818,186 @@ footer{margin-top:34px;border-top:1px solid var(--line);padding-top:22px}
   }
 
   window.addEventListener('resize',size);
+  document.getElementById('gkReplay').addEventListener('click',function(){t0=0;ghostHead=null;ghostSpd=null;});
   fetch('data/gatekeeper.json',{cache:'no-cache'}).then(function(r){return r.json();}).then(function(d){
     if(!d.ticks||!d.ticks.length) throw new Error('no ticks');
-    D=d; card.hidden=false; size(); requestAnimationFrame(loop);
+    D=d;
+    D.ticks.forEach(function(tk,j){
+      if(!tk.fly)return;
+      var last=tk.fly[tk.fly.length-1], nq=D.ticks[(j+1)%D.ticks.length].quad;
+      tk.jump=Math.hypot(last[0]-nq[0],last[1]-nq[1])>0.4;
+    });
+    view=courseView(); card.hidden=false; size(); requestAnimationFrame(loop);
+  }).catch(function(){ card.hidden=true; });
+})();
+
+// The check-on / check-off pair, replayed side by side on a shared clock.
+// Self contained: its own data, its own loop, hidden if the data is not there.
+(function(){
+  "use strict";
+  var card=document.getElementById('cmpCard'), cv=document.getElementById('cmpView');
+  var line=document.getElementById('cmpLine'), ctx=cv.getContext('2d');
+  var W=0,H=0,DPR=1,TWO=Math.PI*2,D=null,BB=null;
+  var css=function(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();};
+  var C={blue:css('--blue'),good:css('--good'),bad:css('--bad')};
+  var ENDHOLD=3.5, TRAILSEC=2.4;   // seconds to read the outcome, and of trail kept on screen
+  var ORDER=['on','off'], TITLE={on:'GATEKEEPER ON',off:'GATEKEEPER OFF'};
+  var heads={on:0,off:0};          // last confident heading; held when the drone barely moves
+
+  function size(){
+    DPR=Math.min(devicePixelRatio||1,2);
+    var r=cv.getBoundingClientRect(); W=Math.round(r.width); H=Math.round(r.height);
+    cv.width=Math.round(W*DPR); cv.height=Math.round(H*DPR); ctx.setTransform(DPR,0,0,DPR,0,0);
+  }
+  function bounds(){
+    var b={x0:1e9,y0:1e9,x1:-1e9,y1:-1e9};
+    [D.center,D.runs.on.xy,D.runs.off.xy].forEach(function(list){
+      list.forEach(function(p){b.x0=Math.min(b.x0,p[0]);b.x1=Math.max(b.x1,p[0]);
+                               b.y0=Math.min(b.y0,p[1]);b.y1=Math.max(b.y1,p[1]);});});
+    var m=1.0;
+    return {cx:(b.x0+b.x1)/2,cy:(b.y0+b.y1)/2,w:(b.x1-b.x0)+2*m,h:(b.y1-b.y0)+2*m};
+  }
+  // split the canvas whichever way lets the course draw larger
+  function panes(){
+    var sH=Math.min((W/2-16)/BB.w,(H-38)/BB.h), sV=Math.min((W-16)/BB.w,(H/2-38)/BB.h);
+    if(sH>=sV) return [{x:0,y:0,w:W/2,h:H},{x:W/2,y:0,w:W/2,h:H}];
+    return [{x:0,y:0,w:W,h:H/2},{x:0,y:H/2,w:W,h:H/2}];
+  }
+  function mkpt(r){
+    var fx=r.x+8, fy=r.y+30, fw=r.w-16, fh=r.h-38;
+    var s=Math.min(fw/BB.w,fh/BB.h), cx=fx+fw/2, cy=fy+fh/2;
+    return function(p){return {x:cx+(p[0]-BB.cx)*s, y:cy-(p[1]-BB.cy)*s, s:s};};
+  }
+  function poly(pt,pts){ctx.beginPath();
+    for(var i=0;i<pts.length;i++){var q=pt(pts[i]);i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y);}}
+  function edges(sign){
+    var c=D.center,n=c.length,out=[];
+    for(var i=0;i<n;i++){var a=c[(i-1+n)%n],b=c[(i+1)%n],tx=b[0]-a[0],ty=b[1]-a[1],m=Math.hypot(tx,ty)||1;
+      out.push([c[i][0]+sign*D.hw*ty/m, c[i][1]-sign*D.hw*tx/m]);}
+    return out;
+  }
+  function drawZone(pt){
+    var o=edges(1),n=edges(-1),i,q;
+    ctx.beginPath();
+    for(i=0;i<o.length;i++){q=pt(o[i]);i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y);}
+    for(i=n.length-1;i>=0;i--){q=pt(n[i]);ctx.lineTo(q.x,q.y);} ctx.closePath();
+    ctx.fillStyle='rgba(42,120,214,0.10)'; ctx.fill();
+    ctx.strokeStyle='rgba(143,180,230,0.9)'; ctx.lineWidth=1.1;
+    poly(pt,o); ctx.closePath(); ctx.stroke(); poly(pt,n); ctx.closePath(); ctx.stroke();
+    ctx.setLineDash([5,6]); ctx.strokeStyle='rgba(120,150,200,0.6)'; ctx.lineWidth=1;
+    poly(pt,D.center); ctx.closePath(); ctx.stroke(); ctx.setLineDash([]);
+  }
+  function drawGates(pt){
+    ctx.lineCap='round';
+    D.gates.forEach(function(g){
+      var nx=Math.cos(g[2]+Math.PI/2), ny=Math.sin(g[2]+Math.PI/2), r=Math.max(g[3],0.55);
+      var a=pt([g[0]-r*nx,g[1]-r*ny]), b=pt([g[0]+r*nx,g[1]+r*ny]);
+      ctx.strokeStyle='#b9bfc9'; ctx.lineWidth=4;
+      ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+      ctx.fillStyle='#9aa1ad';
+      [a,b].forEach(function(q){ctx.beginPath();ctx.arc(q.x,q.y,2.8,0,TWO);ctx.fill();});
+    });
+  }
+  function quad(pt,p,head){
+    var q=pt(p), r=Math.max(4,0.22*q.s), d=r*0.72, a=head+Math.PI/4;
+    ctx.strokeStyle='#3a4152'; ctx.lineWidth=2;
+    [0,1,2,3].forEach(function(k){
+      var t=a+k*Math.PI/2, hx=Math.cos(t)*d, hy=-Math.sin(t)*d;
+      ctx.beginPath(); ctx.moveTo(q.x,q.y); ctx.lineTo(q.x+hx,q.y+hy); ctx.stroke();
+      ctx.beginPath(); ctx.arc(q.x+hx,q.y+hy,r*0.42,0,TWO);
+      ctx.fillStyle='rgba(42,120,214,0.22)'; ctx.fill(); ctx.strokeStyle='#39404f'; ctx.stroke();
+    });
+    ctx.beginPath(); ctx.arc(q.x,q.y,r*0.34,0,TWO); ctx.fillStyle='#2b3040'; ctx.fill();
+    ctx.beginPath(); ctx.moveTo(q.x+Math.cos(head)*r*1.05,q.y-Math.sin(head)*r*1.05);
+    ctx.lineTo(q.x+Math.cos(head+2.5)*r*0.5,q.y-Math.sin(head+2.5)*r*0.5);
+    ctx.lineTo(q.x+Math.cos(head-2.5)*r*0.5,q.y-Math.sin(head-2.5)*r*0.5);
+    ctx.closePath(); ctx.fillStyle=C.blue; ctx.fill();
+  }
+  function trail(pt,run,idx){
+    var span=Math.max(2,Math.round(TRAILSEC/D.t_end*(run.xy.length-1)));
+    var from=Math.max(0,idx-span);
+    ctx.lineCap='round';
+    for(var i=from;i<idx;i++){
+      var out=run.out[i]||run.out[i+1], f=(i-from)/span;
+      ctx.globalAlpha=0.25+0.75*f;
+      var a=pt(run.xy[i]), b=pt(run.xy[i+1]);
+      ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y);
+      ctx.strokeStyle=out?C.bad:C.good; ctx.lineWidth=out?4.4:3.2;
+      if(out){ctx.shadowColor='rgba(208,59,59,0.5)';ctx.shadowBlur=7;}
+      ctx.stroke(); ctx.shadowBlur=0;
+    }
+    ctx.globalAlpha=1;
+  }
+  function marks(pt,run,idx){
+    ctx.lineWidth=2; ctx.strokeStyle=C.bad;
+    run.onsets.forEach(function(o){
+      if(o>idx)return;
+      var q=pt(run.xy[o]);
+      ctx.beginPath(); ctx.moveTo(q.x-4,q.y-4); ctx.lineTo(q.x+4,q.y+4);
+      ctx.moveTo(q.x+4,q.y-4); ctx.lineTo(q.x-4,q.y+4); ctx.stroke();
+    });
+  }
+  function header(r,key,run,idx){
+    var F=css('--sans').replace(/"/g,''), out=!!run.out[idx];
+    ctx.beginPath(); ctx.arc(r.x+16,r.y+17,4.5,0,TWO);
+    ctx.fillStyle=out?C.bad:C.good; ctx.fill();
+    ctx.textAlign='left'; ctx.textBaseline='middle';
+    ctx.font='650 11px '+F; ctx.fillStyle='#565a63';
+    ctx.fillText(TITLE[key],r.x+27,r.y+17);
+    ctx.font='600 11px '+F; ctx.fillStyle='#8b909a'; ctx.textAlign='right';
+    ctx.fillText(Math.round(run.spd[idx]*3.6)+' km/h',r.x+r.w-12,r.y+17);
+    ctx.textAlign='left';
+  }
+
+  var t0=0;
+  function loop(ts){
+    if(!t0)t0=ts;
+    var cyc=D.t_end+ENDHOLD, u=((ts-t0)/1000)%cyc, play=Math.min(u,D.t_end);
+    var N=D.runs.on.xy.length;
+    var idx=Math.min(N-2,Math.max(1,Math.round(play/D.t_end*(N-1))));
+    ctx.clearRect(0,0,W,H);
+    var g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,'#f2f6fc'); g.addColorStop(1,'#fdfefe');
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+    var rects=panes();
+    ctx.strokeStyle='rgba(17,19,24,0.08)'; ctx.lineWidth=1; ctx.beginPath();
+    if(rects[1].x>0){ctx.moveTo(W/2,8);ctx.lineTo(W/2,H-8);}else{ctx.moveTo(8,H/2);ctx.lineTo(W-8,H/2);}
+    ctx.stroke();
+    ORDER.forEach(function(key,j){
+      var r=rects[j], pt=mkpt(r), run=D.runs[key];
+      drawZone(pt); drawGates(pt);
+      trail(pt,run,idx);
+      if(key==='off') marks(pt,run,idx);
+      var a=run.xy[idx-1], b=run.xy[idx+1], dx=b[0]-a[0], dy=b[1]-a[1];
+      if(Math.hypot(dx,dy)>0.035) heads[key]=Math.atan2(dy,dx);
+      quad(pt,run.xy[idx],heads[key]);
+      header(r,key,run,idx);
+    });
+    var txt, col='var(--ink)';
+    if(u>=D.t_end){
+      txt='With the gatekeeper: never left the zone, '+D.runs.on.gates+' of '+D.gates_total+' gates. '+
+          'Without it: out '+D.runs.off.episodes+' times, '+(D.gates_total-D.runs.off.gates)+' gates missed.';
+      col=C.blue;
+    } else if(D.runs.off.onsets.length&&idx>=D.runs.off.onsets[0]){
+      txt='The drone without the gatekeeper keeps swinging wide at the bends.'; col=C.bad;
+    } else {
+      txt='Same lap, same clock. The gatekeeper drone races only as fast as it can prove safe.';
+    }
+    if(line.textContent!==txt) line.textContent=txt;
+    line.style.color=col;
+    requestAnimationFrame(loop);
+  }
+
+  window.addEventListener('resize',size);
+  document.getElementById('cmpReplay').addEventListener('click',function(){t0=0;});
+  fetch('data/compare.json',{cache:'no-cache'}).then(function(r){return r.json();}).then(function(d){
+    if(!d.runs||!d.runs.on||!d.runs.off||!d.center) throw new Error('bad data');
+    D=d;
+    ORDER.forEach(function(k){
+      var run=D.runs[k]; run.onsets=[];
+      for(var i=1;i<run.out.length;i++) if(run.out[i]&&!run.out[i-1]) run.onsets.push(i);
+      heads[k]=Math.atan2(run.xy[2][1]-run.xy[0][1],run.xy[2][0]-run.xy[0][0]);
+    });
+    BB=bounds(); card.hidden=false; size(); requestAnimationFrame(loop);
   }).catch(function(){ card.hidden=true; });
 })();
 </script>

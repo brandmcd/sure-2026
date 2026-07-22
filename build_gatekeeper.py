@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 """Pull the real switch-time search out of a gatekeeper run.
 
+The run is the same too-fast chicane lap the on/off comparison replays, and the
+JSON also carries where its unchecked twin left the corridor, so the decision
+panel can show the search happening at exactly those bends.
+
 Every planning tick the gatekeeper asks the same question several times: if I
 keep flying the plan for this long and only then peel off onto the escape route,
 does that escape route stay inside the corridor? It asks about the longest run of
@@ -27,8 +31,10 @@ sys.path.insert(0, str(REPO))
 
 from viz.geometry import gate_axis          # noqa: E402
 
-RUN = REPO / "results/exp006_gk/track_chicane_6_bare_gk.npz"
-TICKS = [15, 61]              # two decisions where every verdict is visible in the top-down view
+RUN = REPO / "results/exp005/track_chicane_6_vth8_rt_gk.npz"
+OFF_RUN = REPO / "results/exp005/track_chicane_6_vth8_rt_raw.npz"
+TICKS = [14, 16]              # one search that shortens twice, one that shortens once;
+                              # every rejected rehearsal visibly crosses the wall top-down
 NP_CAND = 64                  # samples kept per candidate rollout
 NP_NOM = 24                   # samples kept for the plan it wants to fly
 TAIL = 0.5                    # seconds of a rejected rollout drawn past the breach
@@ -94,13 +100,18 @@ def build():
             xyz = np.asarray(xyz, float)
             cut = settle_index(xyz, path, sw, dt)
             breach = first_breach(xyz, path, hw)
+            if not ok and breach is None:
+                raise SystemExit(f"tick {i}: the rejected {int(sw) * dt:.1f}s rehearsal "
+                                 "never visibly crosses the wall; pick another tick")
             if breach is not None:
                 cut = min(cut, breach + int(TAIL / dt))
+            n_kept = min(cut, len(xyz))
             pts, idx = thin(xyz[:cut, :2], NP_CAND)
             cands.append(dict(
                 wait=round(int(sw) * dt, 2), ok=bool(ok),
                 sw=int(np.searchsorted(idx, int(sw))),
                 breach=None if breach is None else int(np.searchsorted(idx, breach)),
+                sec=round(n_kept * dt, 2),
                 path=[[round(float(x), 3), round(float(y), 3)] for x, y in pts]))
         nom, _ = thin(np.asarray(ca_nom[i], float)[:, :2], NP_NOM)
         q = np.asarray(ca_quad[i], float)
@@ -112,10 +123,43 @@ def build():
         waits = ", ".join(f"{c['wait']}s {'ok' if c['ok'] else 'no'}" for c in cands)
         print(f"  t={ca_t[i]:.2f}s  {waits}")
 
+    # the flown path between decisions, so the drone visibly races from one
+    # bend to the next instead of sitting frozen; the last segment runs until
+    # the lap comes back around to the first bend
+    t_sim = np.asarray(d["t"], float)
+    r_sim = np.asarray(d["r_sim"], float)[:, :2]
+    times = [float(ca_t[i]) for i in TICKS]
+    for j in range(len(TICKS)):
+        t0f = times[j]
+        if j + 1 < len(times):
+            t1f = times[j + 1]
+        else:
+            q0 = np.array(ticks[0]["quad"])
+            later = t_sim > t0f + 1.0
+            if later.any():
+                t1f = float(t_sim[later][np.linalg.norm(r_sim[later] - q0, axis=1).argmin()])
+            else:
+                t1f = float(t_sim[-1])
+        seg = r_sim[(t_sim >= t0f) & (t_sim <= t1f)]
+        pts, _ = thin(seg, max(16, int(24 * (t1f - t0f))))
+        ticks[j]["fly"] = [[round(float(x), 3), round(float(y), 3)] for x, y in pts]
+        ticks[j]["fs"] = round(t1f - t0f, 2)
+        gap = float(np.linalg.norm(np.array(pts[-1]) -
+                                   np.array(ticks[(j + 1) % len(ticks)]["quad"])))
+        print(f"  fly from t={t0f:.2f} to {t1f:.2f}s ({t1f - t0f:.2f}s), "
+              f"lands {gap:.2f} m from the next decision")
+
+    off = np.load(OFF_RUN, allow_pickle=True)
+    off_out = (np.abs(off["lat_err_qr"]) > float(off["corridor_half_width"])) | \
+              (np.abs(off["vert_err_qr"]) > float(off["corridor_half_height"]))
+    onsets = np.flatnonzero(np.diff(np.r_[0, off_out.astype(int)]) == 1)
+    offx = [[round(float(x), 2), round(float(y), 2)]
+            for x, y in np.asarray(off["r_sim"], float)[onsets, :2]]
+
     cl, _ = thin(path[:, :2], 240)
     out = dict(hw=hw, dt=dt,
                center=[[round(float(x), 3), round(float(y), 3)] for x, y in cl],
-               gates=gates, ticks=ticks)
+               gates=gates, ticks=ticks, offx=offx)
     (OUT / "data").mkdir(exist_ok=True)
     (OUT / "data/gatekeeper.json").write_text(json.dumps(out, separators=(",", ":")))
     print(f"wrote data/gatekeeper.json ({(OUT / 'data/gatekeeper.json').stat().st_size // 1024} KB)")
