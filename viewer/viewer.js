@@ -182,11 +182,16 @@ P.forEach((p) => bbox.expandByPoint(v3(p)));
 const center = bbox.getCenter(new THREE.Vector3());
 const extent = bbox.getSize(new THREE.Vector3()).length();
 
-/* z-up orbit camera, always live (playback never touches it); a portrait
-   screen narrows the horizontal field of view, so start further back */
-const fitOut = Math.max(1, Math.min(2.4,
-  0.95 * window.innerHeight / Math.max(1, window.innerWidth)));
-const dist0 = extent * 0.95 * fitOut;
+/* z-up orbit camera, always live (playback never touches it); the start
+   distance backs off until the whole course fits the narrower screen axis */
+function fitDistance() {
+  const vhalf = THREE.MathUtils.degToRad(camera.fov) / 2;
+  const hhalf = Math.atan(Math.tan(vhalf) * Math.max(0.2, innerWidth / Math.max(1, innerHeight)));
+  // calibrated so a wide screen keeps the hand-tuned 0.95 * extent framing
+  return extent * 0.95 * Math.sin(vhalf) / Math.sin(Math.min(vhalf, hhalf));
+}
+let userZoomed = false;
+const dist0 = fitDistance();
 const cam = {
   target: center.clone(), az: -0.9, el: 0.55, dist: dist0,
   gTarget: center.clone(), gAz: -0.9, gEl: 0.55, gDist: dist0,
@@ -216,13 +221,34 @@ function setFollow(on) {
 
 let dragBtn = -1;
 const last = { x: 0, y: 0 };
+const touches = new Map();
+let pinchD = 0;
+function clampDist(d) { return Math.min(extent * 6, Math.max(extent * 0.05, d)); }
 canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 canvas.addEventListener('pointerdown', (e) => {
+  touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  canvas.setPointerCapture(e.pointerId);
+  if (touches.size === 2) {
+    const [a, b] = [...touches.values()];
+    pinchD = Math.hypot(a.x - b.x, a.y - b.y);
+    dragBtn = -1;
+    return;
+  }
   dragBtn = e.shiftKey ? 2 : e.button;
   last.x = e.clientX; last.y = e.clientY;
-  canvas.setPointerCapture(e.pointerId);
 });
 canvas.addEventListener('pointermove', (e) => {
+  if (touches.has(e.pointerId)) touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (touches.size === 2) {
+    const [a, b] = [...touches.values()];
+    const d = Math.hypot(a.x - b.x, a.y - b.y);
+    if (pinchD > 4 && d > 4) {
+      cam.gDist = clampDist(cam.gDist * pinchD / d);
+      userZoomed = true;
+    }
+    pinchD = d;
+    return;
+  }
   if (dragBtn < 0) return;
   const dx = e.clientX - last.x, dy = e.clientY - last.y;
   last.x = e.clientX; last.y = e.clientY;
@@ -237,14 +263,19 @@ canvas.addEventListener('pointermove', (e) => {
     if (follow) setFollow(false);
   }
 });
-canvas.addEventListener('pointerup', () => { dragBtn = -1; });
+function endTouch(e) { touches.delete(e.pointerId); pinchD = 0; dragBtn = -1; }
+canvas.addEventListener('pointerup', endTouch);
+canvas.addEventListener('pointercancel', endTouch);
 canvas.addEventListener('wheel', (e) => {
   e.preventDefault();
-  cam.gDist = Math.min(extent * 6, Math.max(extent * 0.05, cam.gDist * Math.exp(e.deltaY * 0.0011)));
+  cam.gDist = clampDist(cam.gDist * Math.exp(e.deltaY * 0.0011));
+  userZoomed = true;
 }, { passive: false });
 
 function resetCamera() {
   setFollow(false);
+  userZoomed = false;
+  camHome.dist = fitDistance();
   cam.gAz = camHome.az; cam.gEl = camHome.el; cam.gDist = camHome.dist;
   cam.gTarget.copy(camHome.target);
 }
@@ -253,6 +284,8 @@ function resize() {
   renderer.setSize(innerWidth, innerHeight, false);
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
+  camHome.dist = fitDistance();
+  if (!userZoomed) cam.gDist = camHome.dist;
   sizeTimeline();
   drawTimeline();
   if (typeof drawCharts === 'function') drawCharts();
@@ -1196,7 +1229,7 @@ setTime(parseFloat(qs.get('t')) || 0);
 const qAz = parseFloat(qs.get('az')), qEl = parseFloat(qs.get('el')), qZoom = parseFloat(qs.get('zoom'));
 if (Number.isFinite(qAz)) cam.gAz = qAz;
 if (Number.isFinite(qEl)) cam.gEl = Math.min(1.52, Math.max(-1.3, qEl));
-if (Number.isFinite(qZoom)) cam.gDist = Math.min(extent * 6, Math.max(extent * 0.05, cam.gDist * qZoom));
+if (Number.isFinite(qZoom)) { cam.gDist = clampDist(cam.gDist * qZoom); userZoomed = true; }
 if (qs.get('target') === 'quad') {
   const k = Math.floor(Math.max(0, Math.min(simT / DT, N - 1)));
   cam.gTarget.set(P[k][0], P[k][1], P[k][2]);

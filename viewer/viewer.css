@@ -36,7 +36,7 @@ body {
   user-select: none;
   -webkit-user-select: none;
 }
-#canvas { position: fixed; inset: 0; display: block; }
+#canvas { position: fixed; inset: 0; display: block; touch-action: none; }
 
 .panel {
   position: fixed;
