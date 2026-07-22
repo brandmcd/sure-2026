@@ -10,8 +10,13 @@ Payload**.
 - `index.html` is the main site: a clean canvas simulator that renders **real
   recorded runs** in a plain-language style. Two courses (Circle, Chicane), two
   scenes each (empty drone stays in the safe zone; an unknown swinging load,
-  blind to the check, leaves it). The drone banks the way it really did; the
-  "how far off the path" chart and the safe-zone edge are the real signals.
+  blind to the check, leaves it). The safe zone is drawn as the real box swept
+  along the course, so a run can leave it sideways (Circle) or through the floor
+  (Chicane), and the chart plots that offset with the dashed line at the edge.
+  Positions and heights are the recorded run; only the drone's facing is rate
+  limited, since the recorded ground track can swap direction instantly where a
+  run slows to a crawl. A run that ends where it started loops; a partial run
+  fades and replays rather than teleporting back to the start.
 - `data/scenes.json` is the trajectory data (~40 KB), extracted by
   `build_real_scenes.py` from the research repo's run `.npz` files. Rebuild it
   from `~/DASC/neural-dual-gtk` with that repo's venv.

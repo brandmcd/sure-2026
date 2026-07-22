@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#f5f6f8">
 <meta name="description" content="Companion site for the SURE 2026 poster.">
 <meta property="og:title" content="Safe Drone Racing With an Unknown Payload">
-<meta property="og:description" content="Real recorded runs: an unknown load swings a delivery drone out of its safe zone, then a check that learned the load keeps it in.">
+<meta property="og:description" content="Real recorded runs: a delivery drone holds its safe zone empty, then an unknown swinging load drags it out.">
 <title>Safe Drone Racing With an Unknown Payload · SURE 2026</title>
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <style>
@@ -119,10 +119,6 @@ footer{margin-top:34px;border-top:1px solid var(--line);padding-top:22px;
 .honest{font-size:.9rem;line-height:1.6;color:var(--ink-3)}
 .honest b{color:var(--ink-2)}
 .more{margin-top:12px;font-size:.9rem}
-.qr{flex:0 0 auto;text-align:center;background:var(--card);border:1px solid var(--border);
-  border-radius:var(--r);padding:13px}
-.qr img{width:118px;height:118px;display:block;border-radius:var(--r-chip)}
-.qr span{display:block;margin-top:8px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
 .sig{width:100%;margin-top:18px;font-size:.85rem;color:var(--ink-3)}
 .sig b{color:var(--ink-2);font-weight:600}
 </style>
@@ -164,14 +160,14 @@ footer{margin-top:34px;border-top:1px solid var(--line);padding-top:22px;
   <p class="caption" id="caption">The drone knows its own weight, so it holds the line and stays inside the safe zone.</p>
 
   <div class="legend">
-    <span><i class="z"></i>safe zone</span>
+    <span><i class="z"></i>safe zone (a box around the course)</span>
     <span><i class="d" style="background:var(--good)"></i>inside the zone</span>
     <span><i class="d" style="background:var(--bad)"></i>outside the zone</span>
     <span><i class="d" style="background:var(--load)"></i>the load</span>
   </div>
 
   <div class="chart">
-    <div class="h"><span class="t">How far the drone is from its path</span><span class="s">dashed line = edge of the safe zone</span></div>
+    <div class="h"><span class="t">How far the drone is from the middle of its safe zone</span><span class="s">dashed line = edge of the zone</span></div>
     <canvas class="plot" id="plot"></canvas>
   </div>
 
@@ -186,10 +182,6 @@ footer{margin-top:34px;border-top:1px solid var(--line);padding-top:22px;
       <p class="honest"><b>These are real recorded runs</b> from the gatekeeper simulator: a bare drone that holds the safe zone, and the same drone carrying an unknown swinging load the safety check is blind to, so it leaves the zone. Everything is in simulation; the safe zone is the region the check keeps the drone inside, and the loads are deliberately heavy. Teaching the check to feel the load, so it stays both safe and fast, is the next step. Zipline and Wing already lower packages on a cable like this.</p>
       <p class="more">Curious how the full research viewer looks? <a href="sim/grandprix-slung-learned.html?play=1">See a full run &rarr;</a></p>
     </div>
-    <div class="qr">
-      <img src="assets/qr.png" alt="QR code linking to this page" width="118" height="118">
-      <span>share this page</span>
-    </div>
     <p class="sig"><b>Brandon McDonald</b> · Kaleb Ben Naveed · Dimitra Panagou &nbsp;·&nbsp; University of Michigan, College of Engineering · SURE 2026</p>
   </footer>
 
@@ -200,7 +192,7 @@ footer{margin-top:34px;border-top:1px solid var(--line);padding-top:22px;
   "use strict";
   var cv=document.getElementById('view'), ctx=cv.getContext('2d');
   var pv=document.getElementById('plot'), pc=pv.getContext('2d');
-  var W=0,H=0,DPR=1, TWO=Math.PI*2, FLY=2.3, GROUND=0;
+  var W=0,H=0,DPR=1, TWO=Math.PI*2, FLY=2.3, GROUND=0, DATA_VERSION=2;
   function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
   var C={blue:css('--blue'),good:css('--good'),bad:css('--bad'),load:css('--load')};
 
@@ -228,18 +220,27 @@ footer{margin-top:34px;border-top:1px solid var(--line);padding-top:22px;
     sizePlot();
   }
 
-  // ---- sample the real path/series by loop phase (0..1) ----
-  function samp(arr,ph){var n=arr.length,f=(((ph%1)+1)%1)*n,i=Math.floor(f)%n,j=(i+1)%n,g=f-Math.floor(f),o=[];
-    for(var k=0;k<arr[0].length;k++)o.push(arr[i][k]+(arr[j][k]-arr[i][k])*g);return o;}
-  function scal(arr,ph){var n=arr.length,f=(((ph%1)+1)%1)*n,i=Math.floor(f)%n,j=(i+1)%n,g=f-Math.floor(f);return arr[i]+(arr[j]-arr[i])*g;}
-  function posAt(sc,ph){var r=samp(sc.path,ph);return [r[0],r[1],FLY];}
+  // ---- sample a recorded run by playback phase (0..1) ----
+  // A run that ends where it started wraps; a partial run is clamped and replayed.
+  function span(n,ph,loop){
+    if(loop){var f=(((ph%1)+1)%1)*n,i=Math.floor(f)%n;return [i,(i+1)%n,f-Math.floor(f)];}
+    var g=Math.max(0,Math.min(1,ph))*(n-1),j=Math.min(n-2,Math.floor(g));return [j,j+1,g-j];
+  }
+  function samp(arr,ph,loop){var s=span(arr.length,ph,loop),a=arr[s[0]],b=arr[s[1]],o=[];
+    for(var k=0;k<a.length;k++)o.push(a[k]+(b[k]-a[k])*s[2]);return o;}
+  function scal(arr,ph,loop){var s=span(arr.length,ph,loop);return arr[s[0]]+(arr[s[1]]-arr[s[0]])*s[2];}
+  function posAt(sc,ph){var r=samp(sc.path,ph,sc.loop);return [r[0],r[1],FLY+r[2]];}
   function attAt(sc,ph){
-    var p=posAt(sc,ph), q=posAt(sc,ph+0.004);
-    var heading=Math.atan2(q[1]-p[1], q[0]-p[0]), bank=samp(sc.path,ph)[3];
-    var fwd=[Math.cos(heading),Math.sin(heading),0], left=[-Math.sin(heading),Math.cos(heading),0];
+    var r=samp(sc.path,ph,sc.loop), m=Math.hypot(r[3],r[4])||1, bank=r[5];
+    var hx=r[3]/m, hy=r[4]/m;
+    var fwd=[hx,hy,0], left=[-hy,hx,0];
     var up=norm([Math.sin(bank)*left[0],Math.sin(bank)*left[1],Math.cos(bank)]);
     var right=norm(cross(fwd,up)); fwd=norm(cross(up,right));
-    return {p:p, up:up, fwd:fwd, right:right};
+    return {p:[r[0],r[1],FLY+r[2]], up:up, fwd:fwd, right:right};
+  }
+  function visAt(sc,ph){   // partial runs fade at the seam instead of teleporting
+    if(sc.loop)return 1;
+    var e=0.035;return Math.max(0,Math.min(1,ph/e))*Math.max(0,Math.min(1,(1-ph)/e));
   }
 
   function polyF(pts,close){ctx.beginPath();for(var i=0;i<pts.length;i++){var q=proj(pts[i]);i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y);}if(close)ctx.closePath();}
@@ -249,31 +250,37 @@ footer{margin-top:34px;border-top:1px solid var(--line);padding-top:22px;
       ctx.beginPath();var a=proj([f,-ext,GROUND]),b=proj([f,ext,GROUND]);ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
       ctx.beginPath();var c=proj([-ext,f,GROUND]),d=proj([ext,f,GROUND]);ctx.moveTo(c.x,c.y);ctx.lineTo(d.x,d.y);ctx.stroke();}
   }
-  function zoneEdges(){
+  // the safe zone is a box swept along the course: half a width to each side,
+  // half a height up and down
+  function zoneEdges(dz){
     var Cn=TR.center, hw=TR.hw, n=Cn.length, out=[],inn=[],i;
     for(i=0;i<n;i++){var a=Cn[(i-1+n)%n],b=Cn[(i+1)%n],tx=b[0]-a[0],ty=b[1]-a[1],m=Math.hypot(tx,ty)||1;
-      var nx=ty/m,ny=-tx/m;
-      out.push([Cn[i][0]+hw*nx,Cn[i][1]+hw*ny,FLY]); inn.push([Cn[i][0]-hw*nx,Cn[i][1]-hw*ny,FLY]);}
+      var nx=ty/m,ny=-tx/m, z=FLY+Cn[i][2]+dz;
+      out.push([Cn[i][0]+hw*nx,Cn[i][1]+hw*ny,z]); inn.push([Cn[i][0]-hw*nx,Cn[i][1]-hw*ny,z]);}
     return {out:out,inn:inn};
   }
-  function drawZone(){
-    var e=zoneEdges(), i,q;
-    ctx.beginPath();
+  function fillRibbon(e,alpha){
+    var i,q; ctx.beginPath();
     for(i=0;i<e.out.length;i++){q=proj(e.out[i]);i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y);}
     for(i=e.inn.length-1;i>=0;i--){q=proj(e.inn[i]);ctx.lineTo(q.x,q.y);} ctx.closePath();
-    ctx.fillStyle='rgba(42,120,214,0.12)'; ctx.fill();
-    ctx.strokeStyle='rgba(143,180,230,0.9)'; ctx.lineWidth=1.2;
-    polyF(e.out,true); ctx.stroke(); polyF(e.inn,true); ctx.stroke();
-    ctx.setLineDash([6,7]); ctx.strokeStyle='rgba(120,150,200,0.7)'; ctx.lineWidth=1.4;
-    var cl=TR.center.map(function(p){return [p[0],p[1],FLY];}); polyF(cl,true); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle='rgba(42,120,214,'+alpha+')'; ctx.fill();
   }
-  function drawTrail(sc,ph){
-    var span=0.6, steps=64;
+  function drawZone(){
+    var mid=zoneEdges(0);
+    fillRibbon(zoneEdges(-TR.hh),0.06); fillRibbon(zoneEdges(TR.hh),0.06); fillRibbon(mid,0.09);
+    ctx.strokeStyle='rgba(143,180,230,0.9)'; ctx.lineWidth=1.2;
+    polyF(mid.out,true); ctx.stroke(); polyF(mid.inn,true); ctx.stroke();
+    ctx.setLineDash([6,7]); ctx.strokeStyle='rgba(120,150,200,0.7)'; ctx.lineWidth=1.4;
+    var cl=TR.center.map(function(p){return [p[0],p[1],FLY+p[2]];}); polyF(cl,true); ctx.stroke(); ctx.setLineDash([]);
+  }
+  function drawTrail(sc,ph,vis){
+    var back=0.6, steps=96, from=sc.loop?ph-back:Math.max(0,ph-back);
+    if(ph-from<1e-4)return;
     for(var s=0;s<steps;s++){
-      var p1=ph-span+span*s/steps, p2=ph-span+span*(s+1)/steps;
-      var out=scal(sc.err,p1)>TR.hw||scal(sc.err,p2)>TR.hw;
+      var p1=from+(ph-from)*s/steps, p2=from+(ph-from)*(s+1)/steps;
+      var out=scal(sc.err,p1,sc.loop)>1||scal(sc.err,p2,sc.loop)>1;
       var q1=proj(posAt(sc,p1)),q2=proj(posAt(sc,p2)), fade=s/steps;
-      ctx.globalAlpha=0.22+0.78*fade;
+      ctx.globalAlpha=(0.22+0.78*fade)*vis;
       ctx.beginPath();ctx.moveTo(q1.x,q1.y);ctx.lineTo(q2.x,q2.y);
       ctx.strokeStyle=out?C.bad:C.good; ctx.lineWidth=out?5:3.6; ctx.lineCap='round';
       if(out){ctx.shadowColor='rgba(208,59,59,0.5)';ctx.shadowBlur=8;}
@@ -288,9 +295,9 @@ footer{margin-top:34px;border-top:1px solid var(--line);padding-top:22px;
   }
   // real gate: center + facing angle. Posts straddle the path (along its normal), upright.
   function drawGate(g){
-    var gx=g[0],gy=g[1],face=g[2],hw=Math.max(0.8,g[3]),hh=hw*1.25;
+    var gx=g[0],gy=g[1],gz=FLY+g[2],face=g[3],hw=Math.max(0.8,g[4]),hh=hw*1.25;
     var nA=face+Math.PI/2, nx=Math.cos(nA), ny=Math.sin(nA);
-    function cn(sx,dz){return [gx+sx*hw*nx,gy+sx*hw*ny,FLY+dz];}
+    function cn(sx,dz){return [gx+sx*hw*nx,gy+sx*hw*ny,gz+dz];}
     var tl=cn(-1,hh),tr=cn(1,hh),bl=cn(-1,-hh),br=cn(1,-hh);
     var fl=[gx-hw*nx,gy-hw*ny,GROUND], fr=[gx+hw*nx,gy+hw*ny,GROUND];
     ctx.strokeStyle='#aeb5c2'; ctx.lineWidth=5; ctx.lineJoin='round'; ctx.lineCap='round';
@@ -298,26 +305,47 @@ footer{margin-top:34px;border-top:1px solid var(--line);padding-top:22px;
     ctx.strokeStyle='rgba(174,181,194,0.42)'; ctx.lineWidth=2.4;
     polyF([bl,fl],false); ctx.stroke(); polyF([br,fr],false); ctx.stroke();
   }
-  function drawDrone(att){
-    var a=0.44, rr=0.27, p=att.p;
-    var dirs=[norm([att.fwd[0]+att.right[0],att.fwd[1]+att.right[1],att.fwd[2]+att.right[2]]),
-              norm([att.fwd[0]-att.right[0],att.fwd[1]-att.right[1],att.fwd[2]-att.right[2]])];
-    var rotors=[]; dirs.forEach(function(d){rotors.push([p[0]+d[0]*a,p[1]+d[1]*a,p[2]+d[2]*a]);rotors.push([p[0]-d[0]*a,p[1]-d[1]*a,p[2]-d[2]*a]);});
-    var qc=proj(p);
-    ctx.strokeStyle='#2b3040'; ctx.lineWidth=2.4; ctx.lineCap='round';
-    rotors.forEach(function(rp){var q=proj(rp);ctx.beginPath();ctx.moveTo(qc.x,qc.y);ctx.lineTo(q.x,q.y);ctx.stroke();});
-    rotors.forEach(function(rp){
-      ctx.beginPath();
-      for(var k=0;k<=16;k++){var t=k/16*TWO;
-        var pt=[rp[0]+att.fwd[0]*rr*Math.cos(t)+att.right[0]*rr*Math.sin(t),
-                rp[1]+att.fwd[1]*rr*Math.cos(t)+att.right[1]*rr*Math.sin(t),
-                rp[2]+att.fwd[2]*rr*Math.cos(t)+att.right[2]*rr*Math.sin(t)];
-        var q=proj(pt); k?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y);}
-      ctx.closePath(); ctx.fillStyle='rgba(42,120,214,0.16)'; ctx.fill();
-      ctx.strokeStyle='#2b3040'; ctx.lineWidth=1.8; ctx.stroke();
+  function dot(a,b){return a[0]*b[0]+a[1]*b[1]+a[2]*b[2];}
+  // level the model just enough that its rotors never collapse edge on to the camera
+  function readable(att){
+    var ca=Math.cos(az),sa=Math.sin(az),ce=Math.cos(el),se=Math.sin(el);
+    var v=[sa*ce,ca*ce,-se], up=att.up, k=0;
+    while(Math.abs(dot(up,v))<0.3 && k<1){
+      k+=0.25; up=norm([att.up[0]*(1-k),att.up[1]*(1-k),att.up[2]*(1-k)+k]);
+    }
+    if(!k)return att;
+    var right=norm(cross(att.fwd,up));
+    return {p:att.p, up:up, right:right, fwd:norm(cross(up,right))};
+  }
+  function drawDrone(att0){
+    var att=readable(att0), ARM=0.34, RR=0.21, p=att.p;
+    // body coordinates: u to the right, v forward, w up
+    function bp(u,v,w){return [p[0]+att.right[0]*u+att.fwd[0]*v+att.up[0]*w,
+                               p[1]+att.right[1]*u+att.fwd[1]*v+att.up[1]*w,
+                               p[2]+att.right[2]*u+att.fwd[2]*v+att.up[2]*w];}
+    var d=ARM*0.7071, hubs=[[d,d],[-d,d],[-d,-d],[d,-d]];
+    ctx.lineJoin='round'; ctx.lineCap='round';
+    hubs.forEach(function(h){
+      var q0=proj(bp(h[0]*0.28,h[1]*0.28,0)), q1=proj(bp(h[0],h[1],0));
+      ctx.beginPath(); ctx.moveTo(q0.x,q0.y); ctx.lineTo(q1.x,q1.y);
+      ctx.strokeStyle='#3a4152'; ctx.lineWidth=Math.max(1.6,2.4*q1.s/150); ctx.stroke();
     });
-    ctx.beginPath(); ctx.arc(qc.x,qc.y,Math.max(3.4,4.8*qc.s/150),0,TWO);
-    ctx.fillStyle='#1a1e28'; ctx.fill();
+    hubs.forEach(function(h){
+      var top=bp(h[0],h[1],0.045);
+      ctx.beginPath();
+      for(var k=0;k<=20;k++){var t=k/20*TWO,q=proj(bp(h[0]+RR*Math.sin(t),h[1]+RR*Math.cos(t),0.045));
+        k?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y);}
+      ctx.closePath(); ctx.fillStyle='rgba(42,120,214,0.20)'; ctx.fill();
+      ctx.strokeStyle='#39404f'; ctx.lineWidth=1.3; ctx.stroke();
+      var qh=proj(top); ctx.beginPath(); ctx.arc(qh.x,qh.y,Math.max(1.2,1.8*qh.s/150),0,TWO);
+      ctx.fillStyle='#39404f'; ctx.fill();
+    });
+    var body=[bp(0.10,0.17,0),bp(0.13,-0.05,0),bp(0.07,-0.17,0),
+              bp(-0.07,-0.17,0),bp(-0.13,-0.05,0),bp(-0.10,0.17,0)];
+    polyF(body,true); ctx.fillStyle='#2b3040'; ctx.fill();
+    ctx.strokeStyle='#1a1e28'; ctx.lineWidth=1; ctx.stroke();
+    polyF([bp(0.07,0.17,0),bp(0,0.30,0),bp(-0.07,0.17,0)],true);
+    ctx.fillStyle=C.blue; ctx.fill();
   }
 
   function render(ph){
@@ -326,11 +354,14 @@ footer{margin-top:34px;border-top:1px solid var(--line);padding-top:22px;
     ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
     var sc=SC[kind];
     drawGround(); drawZone();
-    var att=attAt(sc,ph), dp=att.p, loadPos=null;
-    if(sc.load && sc.loadrel){var lr=samp(sc.loadrel,ph); loadPos=[dp[0]+lr[0],dp[1]+lr[1],FLY+lr[2]];}
-    shadow(dp,0.9,0.18); if(loadPos)shadow(loadPos,0.5,0.16);
-    drawTrail(sc,ph);
-    var objs=TR.gates.map(function(gt){return {d:proj([gt[0],gt[1],FLY]).d,kind:'gate',g:gt};});
+    var att=attAt(sc,ph), dp=att.p, loadPos=null, vis=visAt(sc,ph);
+    if(sc.load && sc.loadrel){var lr=samp(sc.loadrel,ph,sc.loop); loadPos=[dp[0]+lr[0],dp[1]+lr[1],FLY+lr[2]];}
+    ctx.globalAlpha=vis;
+    shadow(dp,0.55,0.18); if(loadPos)shadow(loadPos,0.35,0.16);
+    ctx.globalAlpha=1;
+    drawTrail(sc,ph,vis);
+    ctx.globalAlpha=vis;
+    var objs=TR.gates.map(function(gt){return {d:proj([gt[0],gt[1],FLY+gt[2]]).d,kind:'gate',g:gt};});
     if(loadPos)objs.push({d:proj(loadPos).d,kind:'load',p:loadPos,from:dp});
     objs.push({d:proj(dp).d,kind:'drone',att:att});
     objs.sort(function(a,b){return b.d-a.d;});
@@ -339,11 +370,12 @@ footer{margin-top:34px;border-top:1px solid var(--line);padding-top:22px;
       else if(o.kind==='load'){
         var qf=proj(o.from),q=proj(o.p);
         ctx.strokeStyle='rgba(120,110,90,0.75)';ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(qf.x,qf.y);ctx.lineTo(q.x,q.y);ctx.stroke();
-        ctx.beginPath();ctx.arc(q.x,q.y,Math.max(5,8*q.s/150),0,TWO);ctx.fillStyle=C.load;ctx.fill();
+        ctx.beginPath();ctx.arc(q.x,q.y,Math.max(4,6*q.s/150),0,TWO);ctx.fillStyle=C.load;ctx.fill();
         ctx.strokeStyle='#b06f00';ctx.lineWidth=1.4;ctx.stroke();
       } else drawDrone(o.att);
     });
-    setPill(scal(sc.err,ph)>TR.hw);
+    ctx.globalAlpha=1;
+    setPill(scal(sc.err,ph,sc.loop)>1);
   }
 
   // ---- chart ----
@@ -351,7 +383,7 @@ footer{margin-top:34px;border-top:1px solid var(--line);padding-top:22px;
     pv.width=Math.round(r.width*DPR);pv.height=Math.round(r.height*DPR);pc.setTransform(DPR,0,0,DPR,0,0);}
   function drawPlot(ph){
     if(!TR)return;
-    var w=pv.width/DPR, h=pv.height/DPR, ser=SC[kind].err, M=ser.length, hw=TR.hw, ymax=TR.ymax;
+    var w=pv.width/DPR, h=pv.height/DPR, ser=SC[kind].err, M=ser.length, hw=1, ymax=TR.ymax;
     var padL=6,padR=6,padT=10,padB=14;
     var X=function(i){return padL+(i/(M-1))*(w-padL-padR);};
     var Y=function(v){return h-padB-(Math.min(v,ymax)/ymax)*(h-padT-padB);};
@@ -367,7 +399,7 @@ footer{margin-top:34px;border-top:1px solid var(--line);padding-top:22px;
       pc.beginPath();pc.moveTo(X(i),Y(ser[i]));pc.lineTo(X(i+1),Y(ser[i+1]));
       pc.strokeStyle=over?C.bad:C.blue;pc.lineWidth=over?2.4:2;pc.stroke();}
     pc.font='600 10px '+css('--sans').replace(/"/g,'');pc.fillStyle=C.bad;pc.textBaseline='bottom';
-    pc.fillText('edge of safe zone',padL,yt-3);
+    pc.fillText('edge of the safe zone',padL,yt-3);
     var idx=Math.round((((ph%1)+1)%1)*(M-1)), hx=X(idx);
     pc.strokeStyle='rgba(20,22,26,0.55)';pc.lineWidth=1.2;pc.beginPath();pc.moveTo(hx,padT-4);pc.lineTo(hx,h-padB);pc.stroke();
     var over=ser[idx]>hw;
@@ -393,7 +425,7 @@ footer{margin-top:34px;border-top:1px solid var(--line);padding-top:22px;
     Array.prototype.forEach.call(document.querySelectorAll('.tab'),function(b){b.setAttribute('aria-selected',(+b.dataset.i===i)?'true':'false');});
   }
   function setTrack(key){ if(!TRMAP[key])return; TR=TRMAP[key]; SC=TR.scenes;
-    var mx=TR.hw*1.6; KINDS.forEach(function(k){SC[k].err.forEach(function(e){if(e>mx)mx=e;});});
+    var mx=1.6; KINDS.forEach(function(k){SC[k].err.forEach(function(e){if(e>mx)mx=e;});});
     TR.ymax=mx*1.05;
     Array.prototype.forEach.call(document.querySelectorAll('.crs'),function(b){b.setAttribute('aria-pressed',(b.dataset.track===key)?'true':'false');});
   }
@@ -435,11 +467,17 @@ footer{margin-top:34px;border-top:1px solid var(--line);padding-top:22px;
     ctx.fillStyle='#565a63';ctx.font='14px system-ui';ctx.textAlign='center';
     ctx.fillText(msg, cv.width/2/(DPR||1), 60);
   }
-  fetch('data/scenes.json').then(function(r){return r.json();}).then(function(d){
+  // the query string keeps a stale copy of the runs from being paired with new code
+  fetch('data/scenes.json?v='+DATA_VERSION,{cache:'no-cache'}).then(function(r){return r.json();}).then(function(d){
+    var t=d.tracks&&d.tracks[0];
+    if(!t||t.center[0].length!==3||t.gates[0].length!==5||t.scenes.empty.path[0].length!==6)
+      throw new Error('stale runs');
     DATA=d; d.tracks.forEach(function(t){TRMAP[t.key]=t;});
     resize(); setTrack('circle'); setScene(0); setPlay(true); requestAnimationFrame(frame);
     setTimeout(function(){document.getElementById('hint').style.opacity=0;},6000);
-  }).catch(function(){ resize(); fail('Run a local web server to load the runs (see the README).'); });
+  }).catch(function(e){ resize();
+    fail(e&&e.message==='stale runs' ? 'Reload the page to pick up the current runs.'
+                                     : 'Run a local web server to load the runs (see the README).'); });
 })();
 </script>
 </body>
