@@ -208,6 +208,14 @@ html[data-theme="light"] #hint { text-shadow: none; }
   #verdict { min-width: 0; }
   #verdict .why { display: none; }
   #title-card { max-width: calc(100vw - 28px); }
-  #charts { left: 8px; right: 8px; width: auto; bottom: 68px; height: 144px; }
+  #charts { left: 8px; right: 8px; width: auto; bottom: 108px; height: 144px; }
   #hint { display: none; }
+  #bottom { left: 8px; right: 8px; bottom: 8px; flex-wrap: wrap; gap: 8px 12px; padding: 8px 12px; }
+  #timeline { flex: 1 1 100%; order: -1; height: 34px; }
+  #clock { min-width: 0; }
+}
+@media (max-width: 540px) {
+  #charts { display: none; }
+  #title-card { padding: 9px 12px; }
+  #play { width: 40px; height: 40px; }
 }
