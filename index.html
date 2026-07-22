@@ -95,6 +95,17 @@ canvas.view:active{cursor:grabbing}
 .chart .h .s{font-size:12px;color:var(--ink-3)}
 canvas.plot{display:block;width:100%;height:118px}
 
+/* switch-time search */
+.gk{margin-top:26px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);
+  padding:15px 16px 14px;box-shadow:0 8px 30px -18px rgba(20,30,60,.25)}
+.gk .h{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.gk .h .t{font-size:.98rem;font-weight:650;color:var(--ink)}
+.gk .h .s{font-size:12px;color:var(--ink-3)}
+.gkintro{margin:8px 0 0;font-size:.92rem;line-height:1.55;color:var(--ink-2);max-width:62ch}
+canvas.gkview{display:block;width:100%;height:min(46vh,300px);margin-top:10px}
+.gkline{margin:8px 2px 0;min-height:1.5em;font-size:.95rem;font-weight:600;color:var(--ink)}
+.gk .legend{margin-top:10px}
+
 /* steps */
 .steps{margin-top:26px;display:grid;grid-template-columns:1fr;gap:11px}
 @media(min-width:560px){.steps{grid-template-columns:1fr 1fr 1fr}}
@@ -170,6 +181,19 @@ footer{margin-top:34px;border-top:1px solid var(--line);padding-top:22px;
     <div class="h"><span class="t">How far the drone is from the middle of its safe zone</span><span class="s">dashed line = edge of the zone</span></div>
     <canvas class="plot" id="plot"></canvas>
   </div>
+
+  <section class="gk" id="gkCard" hidden>
+    <div class="h"><span class="t">How the drone decides it is safe to go fast</span><span class="s">a real decision, from one chicane run</span></div>
+    <p class="gkintro">The drone only races if it already knows how it would get out: stop racing, ease onto the middle of the course, and crawl. <b>So how much longer can it keep racing and still get out?</b> The bend ahead decides it. Reach the bend still going fast and the way out swings wide, outside the safe zone.</p>
+    <canvas class="gkview" id="gkView"></canvas>
+    <p class="gkline" id="gkLine">&nbsp;</p>
+    <div class="legend">
+      <span><i style="background:#aab0bb"></i>racing</span>
+      <span><i style="background:var(--good)"></i>bailing out</span>
+      <span><i style="background:var(--bad)"></i>left the safe zone</span>
+      <span><i style="background:var(--blue)"></i>what it flies</span>
+    </div>
+  </section>
 
   <div class="steps">
     <div class="step"><div class="n">1</div><h3>Fly the course</h3><p>The drone races through the gates and keeps itself inside a safe zone it can prove it will not leave.</p></div>
@@ -478,6 +502,214 @@ footer{margin-top:34px;border-top:1px solid var(--line);padding-top:22px;
   }).catch(function(e){ resize();
     fail(e&&e.message==='stale runs' ? 'Reload the page to pick up the current runs.'
                                      : 'Run a local web server to load the runs (see the README).'); });
+})();
+
+// The switch-time search panel. Self contained: its own data, its own loop, and
+// it stays hidden if the run data is not there.
+(function(){
+  "use strict";
+  var card=document.getElementById('gkCard'), cv=document.getElementById('gkView');
+  var line=document.getElementById('gkLine'), ctx=cv.getContext('2d');
+  var W=0,H=0,DPR=1,TWO=Math.PI*2, D=null, view=null, want=null;
+  var css=function(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();};
+  var C={blue:css('--blue'),good:css('--good'),bad:css('--bad'),plan:'#aab0bb'};
+  var VERDICT=2.4, ENDHOLD=4.0;   // seconds to read each verdict, and the decision
+
+  function size(){
+    DPR=Math.min(devicePixelRatio||1,2);
+    var r=cv.getBoundingClientRect(); W=Math.round(r.width); H=Math.round(r.height);
+    cv.width=Math.round(W*DPR); cv.height=Math.round(H*DPR); ctx.setTransform(DPR,0,0,DPR,0,0);
+  }
+  function boxOf(tk){
+    var pts=[tk.quad].concat(tk.nom);
+    tk.cands.forEach(function(c){pts=pts.concat(c.path);});
+    var b={x0:1e9,y0:1e9,x1:-1e9,y1:-1e9};
+    pts.forEach(function(p){b.x0=Math.min(b.x0,p[0]);b.x1=Math.max(b.x1,p[0]);
+                            b.y0=Math.min(b.y0,p[1]);b.y1=Math.max(b.y1,p[1]);});
+    var m=1.4; return {cx:(b.x0+b.x1)/2, cy:(b.y0+b.y1)/2,
+                       w:(b.x1-b.x0)+2*m, h:(b.y1-b.y0)+2*m};
+  }
+  function pt(p){var s=Math.min(W/view.w,H/view.h);
+    return {x:W/2+(p[0]-view.cx)*s, y:H/2-(p[1]-view.cy)*s, s:s};}
+  function poly(pts,n){ctx.beginPath();
+    for(var i=0;i<(n===undefined?pts.length:n);i++){var q=pt(pts[i]);i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y);}}
+  function edges(sign){
+    var c=D.center,n=c.length,out=[];
+    for(var i=0;i<n;i++){var a=c[(i-1+n)%n],b=c[(i+1)%n],tx=b[0]-a[0],ty=b[1]-a[1],m=Math.hypot(tx,ty)||1;
+      out.push([c[i][0]+sign*D.hw*ty/m, c[i][1]-sign*D.hw*tx/m]);}
+    return out;
+  }
+  function drawZone(){
+    var o=edges(1),n=edges(-1),i,q;
+    ctx.beginPath();
+    for(i=0;i<o.length;i++){q=pt(o[i]);i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y);}
+    for(i=n.length-1;i>=0;i--){q=pt(n[i]);ctx.lineTo(q.x,q.y);} ctx.closePath();
+    ctx.fillStyle='rgba(42,120,214,0.10)'; ctx.fill();
+    ctx.strokeStyle='rgba(143,180,230,0.9)'; ctx.lineWidth=1.2;
+    poly(o); ctx.closePath(); ctx.stroke(); poly(n); ctx.closePath(); ctx.stroke();
+    ctx.setLineDash([5,6]); ctx.strokeStyle='rgba(120,150,200,0.6)'; ctx.lineWidth=1.1;
+    poly(D.center); ctx.closePath(); ctx.stroke(); ctx.setLineDash([]);
+  }
+  function drawGates(){
+    ctx.lineCap='round';
+    D.gates.forEach(function(g){
+      var nx=Math.cos(g[2]+Math.PI/2), ny=Math.sin(g[2]+Math.PI/2), r=Math.max(g[3],0.55);
+      var a=pt([g[0]-r*nx,g[1]-r*ny]), b=pt([g[0]+r*nx,g[1]+r*ny]);
+      ctx.strokeStyle='#b9bfc9'; ctx.lineWidth=5;
+      ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+      ctx.fillStyle='#9aa1ad';
+      [a,b].forEach(function(q){ctx.beginPath();ctx.arc(q.x,q.y,3.4,0,TWO);ctx.fill();});
+    });
+  }
+  function drawQuad(p,alpha,head){
+    var q=pt(p), r=Math.max(4,0.3*q.s), d=r*0.72, a=(head===null||head===undefined)?Math.PI/4:head+Math.PI/4;
+    ctx.globalAlpha=alpha===undefined?1:alpha;
+    ctx.strokeStyle='#3a4152'; ctx.lineWidth=2;
+    [0,1,2,3].forEach(function(k){
+      var t=a+k*Math.PI/2, hx=Math.cos(t)*d, hy=-Math.sin(t)*d;
+      ctx.beginPath(); ctx.moveTo(q.x,q.y); ctx.lineTo(q.x+hx,q.y+hy); ctx.stroke();
+      ctx.beginPath(); ctx.arc(q.x+hx,q.y+hy,r*0.42,0,TWO);
+      ctx.fillStyle='rgba(42,120,214,0.22)'; ctx.fill(); ctx.strokeStyle='#39404f'; ctx.stroke();
+    });
+    ctx.beginPath(); ctx.arc(q.x,q.y,r*0.34,0,TWO); ctx.fillStyle='#2b3040'; ctx.fill();
+    if(head!==null&&head!==undefined){
+      ctx.beginPath(); ctx.moveTo(q.x+Math.cos(head)*r*1.05,q.y-Math.sin(head)*r*1.05);
+      ctx.lineTo(q.x+Math.cos(head+2.5)*r*0.5,q.y-Math.sin(head+2.5)*r*0.5);
+      ctx.lineTo(q.x+Math.cos(head-2.5)*r*0.5,q.y-Math.sin(head-2.5)*r*0.5);
+      ctx.closePath(); ctx.fillStyle=C.blue; ctx.fill();
+    }
+    ctx.globalAlpha=1;
+  }
+  function mark(p,kind,color){
+    var q=pt(p); ctx.lineWidth=2; ctx.strokeStyle=color; ctx.fillStyle=color;
+    if(kind==='switch'){
+      ctx.beginPath(); ctx.moveTo(q.x,q.y-5); ctx.lineTo(q.x+5,q.y);
+      ctx.lineTo(q.x,q.y+5); ctx.lineTo(q.x-5,q.y); ctx.closePath();
+      ctx.fill(); ctx.strokeStyle='#fff'; ctx.lineWidth=1.4; ctx.stroke();
+    } else {
+      ctx.beginPath(); ctx.moveTo(q.x-5,q.y-5); ctx.lineTo(q.x+5,q.y+5);
+      ctx.moveTo(q.x+5,q.y-5); ctx.lineTo(q.x-5,q.y+5); ctx.stroke();
+    }
+  }
+  // the trail of one rehearsal, up to the point it has flown: grey while it is
+  // still racing, green once it is bailing out, red from where it crossed the edge
+  function trail(c,upto,alpha,commit){
+    var n=Math.max(1,Math.round(upto*(c.path.length-1))), sw=Math.min(c.sw,c.path.length-1);
+    var br=(c.breach===null||c.breach===undefined)?1e9:c.breach;
+    ctx.globalAlpha=alpha; ctx.lineCap='round'; ctx.lineJoin='round';
+    function seg(from,to,color,width){
+      if(to<=from)return;
+      ctx.beginPath();
+      for(var i=from;i<=to;i++){var q=pt(c.path[i]);i===from?ctx.moveTo(q.x,q.y):ctx.lineTo(q.x,q.y);}
+      ctx.strokeStyle=color; ctx.lineWidth=width; ctx.stroke();
+    }
+    seg(0,Math.min(n,sw),commit?C.blue:C.plan,commit?5:3);
+    seg(Math.min(n,sw),Math.min(n,br),C.good,3.4);
+    seg(Math.min(n,br),n,C.bad,3);
+    if(n>=sw) mark(c.path[sw],'switch',commit?C.blue:C.good);
+    if(n>=br) mark(c.path[br],'x',C.bad);
+    ctx.globalAlpha=1;
+  }
+  // the running tally, always on screen: how long each try kept racing,
+  // and how it turned out
+  function board(tk,st){
+    var F=css('--sans').replace(/"/g,''), x=10, y=10, w=146, rh=23, h=30+tk.cands.length*rh;
+    ctx.fillStyle='rgba(255,255,255,0.86)'; ctx.strokeStyle='rgba(17,19,24,0.10)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.roundRect(x,y,w,h,10); ctx.fill(); ctx.stroke();
+    ctx.textAlign='left'; ctx.font='650 10px '+F; ctx.fillStyle='#8b909a';
+    ctx.fillText('KEEP RACING FOR', x+11, y+19);
+    tk.cands.forEach(function(c,j){
+      var ry=y+30+j*rh+11, decided=j<st.k||(j===st.k&&(st.part==='verdict'||st.part==='done'))||st.part==='done';
+      var live=j===st.k&&st.part!=='done';
+      ctx.font=(live?'700 ':'600 ')+'14px '+F;
+      ctx.fillStyle=decided?(c.ok?C.good:C.bad):(live?'#14161a':'#c3c7ce');
+      ctx.fillText(c.wait.toFixed(1)+' s', x+11, ry+4);
+      if(decided){
+        ctx.strokeStyle=c.ok?C.good:C.bad; ctx.lineWidth=2.2; ctx.lineCap='round';
+        ctx.beginPath();
+        if(c.ok){ctx.moveTo(x+w-30,ry);ctx.lineTo(x+w-25,ry+5);ctx.lineTo(x+w-15,ry-6);}
+        else {ctx.moveTo(x+w-28,ry-5);ctx.lineTo(x+w-17,ry+6);ctx.moveTo(x+w-17,ry-5);ctx.lineTo(x+w-28,ry+6);}
+        ctx.stroke();
+      } else if(live){
+        ctx.fillStyle=C.blue; ctx.beginPath(); ctx.arc(x+w-22,ry,4,0,TWO); ctx.fill();
+      }
+    });
+  }
+  function ghost(c,upto){
+    var f=upto*(c.path.length-1), i=Math.min(c.path.length-2,Math.floor(f));
+    var a=c.path[i], b=c.path[i+1], g=f-i;
+    var p=[a[0]+(b[0]-a[0])*g, a[1]+(b[1]-a[1])*g];
+    drawQuad(p,0.9,Math.atan2(b[1]-a[1],b[0]-a[0]));
+  }
+
+  // one rehearsal: race, bail out, then a beat to read the verdict
+  function raceTime(c){return 0.7+c.wait*1.3;}
+  function bailTime(c){return 1.9;}
+  function candTime(c){return raceTime(c)+bailTime(c)+VERDICT;}
+  function tickLength(tk){
+    var s=ENDHOLD; tk.cands.forEach(function(c){s+=candTime(c);}); return s;
+  }
+  function stage(tk,u){
+    for(var k=0;k<tk.cands.length;k++){
+      var c=tk.cands[k], rt=raceTime(c), bt=bailTime(c);
+      if(u<rt) return {k:k,part:'race',upto:(u/rt)*(c.sw/(c.path.length-1))};
+      u-=rt;
+      if(u<bt){var f=u/bt, sw=c.sw/(c.path.length-1); return {k:k,part:'bail',upto:sw+f*(1-sw)};}
+      u-=bt;
+      if(u<VERDICT) return {k:k,part:'verdict',upto:1};
+      u-=VERDICT;
+    }
+    return {k:tk.cands.length-1,part:'done',upto:1};
+  }
+
+  var t0=0, prev=0;
+  function loop(ts){
+    if(!t0)t0=ts; var now=(ts-t0)/1000, i=0, u=now;
+    while(u>tickLength(D.ticks[i])){u-=tickLength(D.ticks[i]); i=(i+1)%D.ticks.length;}
+    var tk=D.ticks[i], st=stage(tk,u), box=boxOf(tk);
+    if(!view){view=box;} else {var f=Math.min(1,(ts-(prev||ts))/1000*2.2);
+      view={cx:view.cx+(box.cx-view.cx)*f, cy:view.cy+(box.cy-view.cy)*f,
+            w:view.w+(box.w-view.w)*f, h:view.h+(box.h-view.h)*f};}
+    prev=ts;
+    ctx.clearRect(0,0,W,H);
+    var g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,'#f2f6fc'); g.addColorStop(1,'#fdfefe');
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+    drawZone(); drawGates();
+    ctx.setLineDash([6,6]); poly(tk.nom); ctx.strokeStyle=C.plan; ctx.lineWidth=2; ctx.stroke();
+    ctx.setLineDash([]);
+    var chosen=-1; tk.cands.forEach(function(c,j){if(chosen<0&&c.ok)chosen=j;});
+    tk.cands.forEach(function(c,j){ if(j<st.k) trail(c,1,0.28,false); });
+    var c=tk.cands[st.k];
+    if(st.part==='done'){
+      if(chosen>=0) trail(tk.cands[chosen],1,1,true); else trail(c,1,0.5,false);
+    } else {
+      trail(c,st.upto,1,false);
+      ghost(c,st.upto);
+    }
+    drawQuad(tk.quad,1,null);
+    board(tk,st);
+    var txt, col='var(--ink)';
+    if(st.part==='race'||st.part==='bail')
+      txt='What if it races '+c.wait.toFixed(1)+' s longer, then bails out?';
+    else if(st.part==='verdict'){
+      txt=c.ok?'It gets out without leaving the safe zone.'
+              :'Still fast at the bend, so the way out swings wide.';
+      col=c.ok?C.good:C.bad;
+    } else {
+      txt=chosen>=0?'So it races '+tk.cands[chosen].wait.toFixed(1)+' s, and no further.'
+                   :'None of them work, so it does not speed up.';
+      col=chosen>=0?C.blue:C.bad;
+    }
+    if(line.textContent!==txt) line.textContent=txt;
+    line.style.color=col;
+    requestAnimationFrame(loop);
+  }
+
+  window.addEventListener('resize',size);
+  fetch('data/gatekeeper.json',{cache:'no-cache'}).then(function(r){return r.json();}).then(function(d){
+    if(!d.ticks||!d.ticks.length) throw new Error('no ticks');
+    D=d; card.hidden=false; size(); requestAnimationFrame(loop);
+  }).catch(function(){ card.hidden=true; });
 })();
 </script>
 </body>

@@ -20,6 +20,21 @@ Payload**.
 - `data/scenes.json` is the trajectory data (~40 KB), extracted by
   `build_real_scenes.py` from the research repo's run `.npz` files. Rebuild it
   from `~/DASC/neural-dual-gtk` with that repo's venv.
+- The panel lower on the page plays the gatekeeper's decision as a series of
+  rehearsals: the drone flies each one, races a little longer than the last, then
+  bails out onto the middle of the course. It is a separate, self-contained
+  module reading `data/gatekeeper.json`, built by `build_gatekeeper.py` from the
+  same chicane run. Each planning tick logs every switch time the gatekeeper
+  tried, whether it passed, and its rollout, so what plays is the real search.
+  The trail is coloured as it flies, turning red exactly where the rollout
+  crosses the corridor edge, measured the way the safety check measures it.
+  Rollouts are trimmed where they stop saying anything new: a rejected one
+  shortly past its breach, an accepted one once it has settled onto the
+  centerline. Only ticks whose every verdict is visible top-down are used: on
+  some ticks a rehearsal is rejected because a perturbed member of its ensemble
+  leaves the corridor while the drawn rollout does not, and playing that would
+  show a red verdict with nothing on screen to justify it. The panel hides itself
+  if the data file is missing, so it cannot affect the rest of the page.
 - `sim/grandprix-slung-learned.html` is one full run from the research three.js
   viewer, linked from the footer; it shares `viewer/`.
 - `assets/qr.*` is the QR to the live URL (SVG for print); `make_qr.py`
