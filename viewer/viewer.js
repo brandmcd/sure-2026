@@ -182,10 +182,14 @@ P.forEach((p) => bbox.expandByPoint(v3(p)));
 const center = bbox.getCenter(new THREE.Vector3());
 const extent = bbox.getSize(new THREE.Vector3()).length();
 
-/* z-up orbit camera, always live (playback never touches it) */
+/* z-up orbit camera, always live (playback never touches it); a portrait
+   screen narrows the horizontal field of view, so start further back */
+const fitOut = Math.max(1, Math.min(2.4,
+  0.95 * window.innerHeight / Math.max(1, window.innerWidth)));
+const dist0 = extent * 0.95 * fitOut;
 const cam = {
-  target: center.clone(), az: -0.9, el: 0.55, dist: extent * 0.95,
-  gTarget: center.clone(), gAz: -0.9, gEl: 0.55, gDist: extent * 0.95,
+  target: center.clone(), az: -0.9, el: 0.55, dist: dist0,
+  gTarget: center.clone(), gAz: -0.9, gEl: 0.55, gDist: dist0,
 };
 const camHome = { az: cam.gAz, el: cam.gEl, dist: cam.gDist, target: cam.gTarget.clone() };
 

@@ -99,7 +99,12 @@ canvas.plot{display:block;width:100%;height:118px}
 .gk .h .t{font-size:.98rem;font-weight:650;color:var(--ink)}
 .gkintro{margin:8px 0 0;font-size:.92rem;line-height:1.55;color:var(--ink-2);max-width:62ch}
 canvas.gkview{display:block;width:100%;height:min(46vh,300px);margin-top:10px}
-@media(max-width:559px){#cmpView{height:min(62vh,430px)}}
+@media(max-width:559px){
+  #cmpView{height:min(62vh,430px)}
+  .tag{max-width:calc(100% - 24px)}
+  .pill{top:auto;bottom:10px;right:10px}
+  .gkline{min-height:3em;font-size:.9rem}
+}
 .gkline{margin:8px 2px 0;min-height:1.5em;font-size:.95rem;font-weight:600;color:var(--ink)}
 .gk .legend{margin-top:10px}
 .replay{border:1px solid var(--border);background:var(--card);color:var(--ink-2);cursor:pointer;
@@ -668,16 +673,17 @@ footer{margin-top:34px;border-top:1px solid var(--line);padding-top:22px}
   // the running tally, always on screen: how long each try kept racing,
   // and how it turned out
   function board(tk,st){
-    var F=css('--sans').replace(/"/g,''), x=10, y=10, w=146, rh=23, h=30+tk.cands.length*rh;
+    var F='ui-monospace,SFMono-Regular,Menlo,Consolas,monospace';
+    var x=10, y=10, w=150, rh=24, h=42+tk.cands.length*rh;
     ctx.fillStyle='rgba(255,255,255,0.92)'; ctx.strokeStyle='rgba(30,28,18,0.14)'; ctx.lineWidth=1;
     ctx.beginPath(); ctx.roundRect(x,y,w,h,5); ctx.fill(); ctx.stroke();
-    ctx.textAlign='left'; ctx.font='650 10px '+F; ctx.fillStyle='#8b909a';
-    ctx.fillText('KEEP RACING FOR', x+11, y+19);
+    ctx.textAlign='left'; ctx.font='700 9.5px '+F; ctx.fillStyle='#8b8c84';
+    ctx.fillText('KEEP RACING FOR', x+11, y+20);
     tk.cands.forEach(function(c,j){
-      var ry=y+30+j*rh+11, decided=j<st.k||(j===st.k&&(st.part==='verdict'||st.part==='retry'||st.part==='done'))||st.part==='done';
+      var ry=y+36+j*rh+10, decided=j<st.k||(j===st.k&&(st.part==='verdict'||st.part==='retry'||st.part==='done'))||st.part==='done';
       var live=j===st.k&&st.part!=='done';
-      ctx.font=(live?'700 ':'600 ')+'14px '+F;
-      ctx.fillStyle=decided?(c.ok?C.good:C.bad):(live?'#14161a':'#c3c7ce');
+      ctx.font=(live?'700 ':'500 ')+'13px '+F;
+      ctx.fillStyle=decided?(c.ok?C.good:C.bad):(live?'#191a17':'#c6c4b9');
       ctx.fillText(c.wait.toFixed(1)+' s', x+11, ry+4);
       if(decided){
         ctx.strokeStyle=c.ok?C.good:C.bad; ctx.lineWidth=2.2; ctx.lineCap='round';
